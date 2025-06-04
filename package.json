@@ -18,6 +18,7 @@
   "homepage": "https://github.com/rosarioa5atwit/recipe#readme",
   "description": "",
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
     "bcryptjs": "^3.0.2",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
