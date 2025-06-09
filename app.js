@@ -40,14 +40,8 @@ app.get('/login', (req, res) => {
 });
 
 // Add Recipe (GET)
-app.get('/addrecip', async (req, res) => {
-  // Fetch ingredients for datalist
-  const { data: ingredientsList, error } = await supabase.from('ingredients').select('name');
-  res.render('addrecip', {
-    title: 'Add Recipe',
-    ingredientsList: ingredientsList || [],
-    error: null
-  });
+app.get('/addrecip', (req, res) => {
+  res.render('addrecip', { error: null });
 });
 
 app.post('/login', async (req, res) => {
@@ -133,35 +127,18 @@ app.get(['/recipe', '/recipe/'], (req, res) => {
 
 // Add Recipe (POST)
 app.post('/addrecip', async (req, res) => {
-  const { title, description, prepTime, cookTime, servings } = req.body;
+  const { title, description, ingredients } = req.body;
+  // You may want to add user authentication here
   try {
     const { data, error } = await supabase.from('recipes').insert([
-      {
-        title,
-        description,
-        prep_time: prepTime,
-        cook_time: cookTime,
-        servings
-      }
+      { title, description, ingredients } // Add other fields as needed
     ]);
     if (error) {
-      // Fetch ingredientsList again for the form
-      const { data: ingredientsList, error: ingError } = await supabase.from('ingredients').select('name');
-      return res.render('addrecip', {
-        title: 'Add Recipe',
-        ingredientsList: ingredientsList || [],
-        error: error.message
-      });
+      return res.render('addrecip', { title: 'Add Recipe', error: error.message });
     }
     res.redirect('/recipe');
   } catch (err) {
-    // Fetch ingredientsList again for the form
-    const { data: ingredientsList, error: ingError } = await supabase.from('ingredients').select('name');
-    res.render('addrecip', {
-      title: 'Add Recipe',
-      ingredientsList: ingredientsList || [],
-      error: 'Failed to add recipe.'
-    });
+    res.render('addrecip', { title: 'Add Recipe', error: 'Failed to add recipe.' });
   }
 });
 

@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   // Image Preview
   const imageInput = document.getElementById('recipeImage');
   const previewContainer = document.getElementById('imagePreview');
@@ -14,20 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Fetch ingredients and units from API
-  const [ingredients, units] = await Promise.all([
-    fetch('/api/ingredients').then(res => res.json()),
-    fetch('/api/units').then(res => res.json())
-  ]);
-  
-  // Populate ingredient datalist
-  const datalist = document.getElementById('ingredientList');
-  ingredients.forEach(ingredient => {
-    const option = document.createElement('option');
-    option.value = ingredient.name || ingredient; // Support both array of strings and array of objects
-    datalist.appendChild(option);
-  });
-  
   // Add Ingredient Functionality
   const addIngredientBtn = document.getElementById('addIngredientBtn');
   const ingredientsContainer = document.getElementById('ingredientsContainer');
@@ -35,15 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   function addIngredientRow() {
     const clone = ingredientTemplate.content.cloneNode(true);
-    const unitSelect = clone.querySelector('.ingredient-unit');
-    
-    // Populate units
-    units.forEach(unit => {
-      const option = document.createElement('option');
-      option.value = unit.id;
-      option.textContent = unit.abbreviation ? `${unit.name} (${unit.abbreviation})` : unit.name;
-      unitSelect.appendChild(option);
-    });
     
     // Add remove functionality
     clone.querySelector('.remove-ingredient').addEventListener('click', function() {
@@ -111,22 +88,5 @@ document.addEventListener('DOMContentLoaded', async () => {
       alert('Please add at least one instruction step');
       return;
     }
-    
-    // Collect ingredients data
-    const ingredients = [];
-    document.querySelectorAll('.ingredient-row').forEach(row => {
-      ingredients.push({
-        name: row.querySelector('.ingredient-name').value,
-        amount: parseFloat(row.querySelector('.ingredient-amount').value),
-        unit_id: parseInt(row.querySelector('.ingredient-unit').value)
-      });
-    });
-    
-    // Add hidden input with ingredients JSON
-    const ingredientsInput = document.createElement('input');
-    ingredientsInput.type = 'hidden';
-    ingredientsInput.name = 'ingredients';
-    ingredientsInput.value = JSON.stringify(ingredients);
-    this.appendChild(ingredientsInput);
   });
 });
