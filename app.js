@@ -40,8 +40,14 @@ app.get('/login', (req, res) => {
 });
 
 // Add Recipe (GET)
-app.get('/addrecip', (req, res) => {
-  res.render('addrecip', { title: 'Add Recipe' });
+app.get('/addrecip', async (req, res) => {
+  // Fetch ingredients for datalist
+  const { data: ingredientsList, error } = await supabase.from('ingredients').select('name');
+  res.render('addrecip', {
+    title: 'Add Recipe',
+    ingredientsList: ingredientsList || [],
+    error: null
+  });
 });
 
 app.post('/login', async (req, res) => {
@@ -98,17 +104,23 @@ app.post('/signup', async (req, res) => {
   }
 
   // Insert user into 'profiles' table after successful signup
-  if (data && data.user && data.user.id) {
+  if (data && data.user && (data.user.id || data.user.user_metadata)) {
+    // Supabase v2 may return user.id or user.user_metadata.sub
+    const userId = data.user.id || (data.user.user_metadata && data.user.user_metadata.sub);
+    if (!userId) {
+      console.error('No user ID found in Supabase signup response:', data.user);
+      return res.render('signup', { error: 'Account created, but no user ID found for profile.' });
+    }
     const { error: profileError } = await supabase.from('profiles').insert([
-      { id: data.user.id, username, email }
+      { id: userId, username, email }
     ]);
     if (profileError) {
       console.error('Supabase profile insert error:', profileError);
       return res.render('signup', { error: 'Account created, but failed to save user profile. ' + profileError.message });
     }
   } else {
-    console.error('No user ID returned from Supabase:', data);
-    return res.render('signup', { error: 'Account creation failed. No user ID returned.' });
+    console.error('No user object returned from Supabase:', data);
+    return res.render('signup', { error: 'Account creation failed. No user object returned.' });
   }
 
   res.redirect('/login');
@@ -121,18 +133,35 @@ app.get(['/recipe', '/recipe/'], (req, res) => {
 
 // Add Recipe (POST)
 app.post('/addrecip', async (req, res) => {
-  const { title, description, ingredients } = req.body;
-  // You may want to add user authentication here
+  const { title, description, prepTime, cookTime, servings } = req.body;
   try {
     const { data, error } = await supabase.from('recipes').insert([
-      { title, description, ingredients } // Add other fields as needed
+      {
+        title,
+        description,
+        prep_time: prepTime,
+        cook_time: cookTime,
+        servings
+      }
     ]);
     if (error) {
-      return res.render('addrecip', { title: 'Add Recipe', error: error.message });
+      // Fetch ingredientsList again for the form
+      const { data: ingredientsList, error: ingError } = await supabase.from('ingredients').select('name');
+      return res.render('addrecip', {
+        title: 'Add Recipe',
+        ingredientsList: ingredientsList || [],
+        error: error.message
+      });
     }
     res.redirect('/recipe');
   } catch (err) {
-    res.render('addrecip', { title: 'Add Recipe', error: 'Failed to add recipe.' });
+    // Fetch ingredientsList again for the form
+    const { data: ingredientsList, error: ingError } = await supabase.from('ingredients').select('name');
+    res.render('addrecip', {
+      title: 'Add Recipe',
+      ingredientsList: ingredientsList || [],
+      error: 'Failed to add recipe.'
+    });
   }
 });
 

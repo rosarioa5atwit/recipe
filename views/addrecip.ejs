@@ -1,26 +1,117 @@
 <%- include('parts/header', { title: 'Add Recipe' }) %>
-<section class="add-recipe">
-  <% if (typeof error !== 'undefined' && error) { %>
-    <div class="error"><%= error %></div>
-  <% } %>
-  <form action="/addrecip" method="POST">
-    <div class="form-group">
-      <label for="title">Recipe Name:</label>
-      <input type="text" id="title" name="title" required>
+
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow">
+        <div class="card-body p-4">
+          <h2 class="mb-4">Create New Recipe</h2>
+          <% if (error) { %>
+            <div class="alert alert-danger"><%= error %></div>
+          <% } %>
+          <form id="recipeForm" action="/addrecip" method="POST" enctype="multipart/form-data">
+            <!-- Basic Info -->
+            <div class="mb-4">
+              <div class="mb-3">
+                <label for="title" class="form-label">Recipe Title</label>
+                <input type="text" class="form-control" id="title" name="title" required placeholder="e.g. Grandma's Chocolate Chip Cookies">
+              </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="2" placeholder="What makes this recipe special?"></textarea>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="prepTime" class="form-label">Prep Time (mins)</label>
+                  <input type="number" class="form-control" id="prepTime" name="prepTime" min="0">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="cookTime" class="form-label">Cook Time (mins)</label>
+                  <input type="number" class="form-control" id="cookTime" name="cookTime" min="0">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="servings" class="form-label">Servings</label>
+                  <input type="number" class="form-control" id="servings" name="servings" min="1" value="4">
+                </div>
+              </div>
+            </div>
+            <!-- Image Upload -->
+            <div class="mb-4">
+              <label for="recipeImage" class="form-label">Recipe Image</label>
+              <input type="file" class="form-control" id="recipeImage" name="image" accept="image/*">
+              <div class="preview-container mt-2" id="imagePreview" style="display:none;">
+                <img id="previewImage" class="img-thumbnail" style="max-height: 200px;">
+              </div>
+            </div>
+            <!-- Ingredients Section -->
+            <div class="mb-4">
+              <h4 class="d-flex justify-content-between align-items-center">
+                Ingredients
+                <button type="button" id="addIngredientBtn" class="btn btn-sm btn-primary">
+                  <i class="bi bi-plus"></i> Add
+                </button>
+              </h4>
+              <div id="ingredientsContainer">
+                <!-- Dynamic ingredients will be added here -->
+              </div>
+              <template id="ingredientTemplate">
+                <div class="ingredient-row mb-3 row g-2">
+                  <div class="col-sm-5">
+                    <input type="text" class="form-control ingredient-name" placeholder="Ingredient" list="ingredientList" required>
+                  </div>
+                  <div class="col-sm-2">
+                    <input type="number" class="form-control ingredient-amount" placeholder="Qty" step="0.01" min="0" required>
+                  </div>
+                  <div class="col-sm-3">
+                    <select class="form-select ingredient-unit" required>
+                      <option value="">Unit</option>
+                      <!-- Units populated by JS -->
+                    </select>
+                  </div>
+                  <div class="col-sm-2">
+                    <button type="button" class="btn btn-outline-danger remove-ingredient">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </template>
+              <datalist id="ingredientList">
+                <% if (Array.isArray(ingredientsList)) { %>
+                  <% ingredientsList.forEach(function(ingredient) { %>
+                    <option value="<%= ingredient.name %>"></option>
+                  <% }); %>
+                <% } %>
+              </datalist>
+            </div>
+            <!-- Instructions -->
+            <div class="mb-4">
+              <h4>Instructions</h4>
+              <div id="instructionsContainer">
+                <div class="instruction-step mb-3">
+                  <div class="input-group">
+                    <span class="input-group-text">1</span>
+                    <textarea class="form-control" name="instructions[]" placeholder="Describe this step..." required></textarea>
+                    <button type="button" class="btn btn-outline-danger remove-step" disabled>
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button type="button" id="addStepBtn" class="btn btn-sm btn-outline-primary mt-2">
+                <i class="bi bi-plus"></i> Add Step
+              </button>
+            </div>
+            <!-- Submit Button -->
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-save"></i> Save Recipe
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="serving_size">Serving Size:</label>
-      <input type="text" id="serving_size" name="serving_size" required>
-    </div>
-    <div class="form-group">
-      <label for="ingredients">Ingredients:</label>
-      <textarea id="ingredients" name="ingredients" required></textarea>
-    </div>
-    <div class="form-group">
-      <label for="instructions">Instructions:</label>
-      <textarea id="instructions" name="instructions" required></textarea>
-    </div>
-    <button type="submit">Add Recipe</button>
-  </form>
-</section>
+  </div>
+</div>
+
 <%- include('parts/footer') %>
