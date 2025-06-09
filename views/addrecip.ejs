@@ -1,0 +1,26 @@
+<%- include('parts/header', { title: 'Add Recipe' }) %>
+<section class="add-recipe">
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="error"><%= error %></div>
+  <% } %>
+  <form action="/addrecip" method="POST">
+    <div class="form-group">
+      <label for="title">Recipe Name:</label>
+      <input type="text" id="title" name="title" required>
+    </div>
+    <div class="form-group">
+      <label for="serving_size">Serving Size:</label>
+      <input type="text" id="serving_size" name="serving_size" required>
+    </div>
+    <div class="form-group">
+      <label for="ingredients">Ingredients:</label>
+      <textarea id="ingredients" name="ingredients" required></textarea>
+    </div>
+    <div class="form-group">
+      <label for="instructions">Instructions:</label>
+      <textarea id="instructions" name="instructions" required></textarea>
+    </div>
+    <button type="submit">Add Recipe</button>
+  </form>
+</section>
+<%- include('parts/footer') %>

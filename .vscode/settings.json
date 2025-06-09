@@ -10,5 +10,6 @@
             "database": "portionperfect",
             "username": "postgres"
         }
-    ]
+    ],
+    "liveServer.settings.port": 5501
 }

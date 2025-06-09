@@ -1,0 +1,22 @@
+<%- include('parts/header', { title: '/' }) %>
+
+
+<form id="loginForm" action="/login" method="POST">
+  <div class="form-group">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required>
+  </div>
+  <div class="form-group">
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
+  </div>
+  <button type="submit">Login</button>
+  <p class="signup-link">
+    Don't have an account? <a href="/signup">Sign up</a>
+  </p>
+  <p class="forgot-password-link">
+    <a href="/forgot-password">Forgot Password?</a>
+  </p>
+</form>
+
+<%- include('parts/footer') %>
