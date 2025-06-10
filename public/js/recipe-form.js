@@ -82,11 +82,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Form Submission Handling
   document.getElementById('recipeForm').addEventListener('submit', function(e) {
-    // Validate at least one instruction step
+    // Only preventDefault if validation fails
     if (document.querySelectorAll('[name="instructions[]"]').length === 0) {
       e.preventDefault();
       alert('Please add at least one instruction step');
       return;
     }
+    // Do NOT call e.preventDefault() here otherwise!
   });
 });

@@ -1,160 +1,115 @@
-require('dotenv').config();
+// server.js
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-const path = require('path');
-
-// Initialize Express
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
-// Initialize Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// SUPABASE SETUP
+require('dotenv').config();
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+// Debug: Check if Supabase is linked and .env is loaded
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase ANON KEY:', supabaseAnonKey ? 'Loaded' : 'Missing');
 
-// Set EJS as view engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ ERROR: SUPABASE_URL or SUPABASE_ANON_KEY is missing. Check your .env file.');
+  process.exit(1);
+}
 
-// User context middleware
-app.use(async (req, res, next) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  res.locals.user = user || null;
-  next();
-});
-
-// Routes
-app.get('/', (req, res) => {
-  res.render('index', { title: 'Recipe Manager' });
-});
-
-app.get('/login', (req, res) => {
-  if (res.locals.user) return res.redirect('/dashboard');
-  res.render('login', { error: null });
-});
-
-// Add Recipe (GET)
-app.get('/addrecip', (req, res) => {
-  res.render('addrecip', { error: null });
-});
-
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
-  // Supabase Auth login
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (authError) {
-    return res.render('login', { error: authError.message });
-  }
-
-
-  let profile = null;
-  const { data: profileData, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('email', email)
-    .single();
-
-  if (profileError && profileError.code !== 'PGRST116') { // PGRST116: No rows found
-    return res.render('login', { error: 'Login successful, but failed to fetch user profile.' });
-  }
-  profile = profileData;
-
-
-  res.redirect('/dashboard');
-});
-
-// Import and use the register router
-const registerRouter = require('./routes/register');
-const { title } = require('process');
-app.use('/', registerRouter);
-
-// Signup (GET)
-app.get('/signup', (req, res) => {
-  res.render('signup');
-});
-
-// Signup (POST)
-app.post('/signup', async (req, res) => {
-  const { username, email, password } = req.body;
-  // Create user in Supabase Auth
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
-
-  if (error) {
-    return res.render('signup', { error: error.message });
-  }
-
-  // Insert user into 'profiles' table after successful signup
-  if (data && data.user && (data.user.id || data.user.user_metadata)) {
-    // Supabase v2 may return user.id or user.user_metadata.sub
-    const userId = data.user.id || (data.user.user_metadata && data.user.user_metadata.sub);
-    if (!userId) {
-      console.error('No user ID found in Supabase signup response:', data.user);
-      return res.render('signup', { error: 'Account created, but no user ID found for profile.' });
-    }
-    const { error: profileError } = await supabase.from('profiles').insert([
-      { id: userId, username, email }
-    ]);
-    if (profileError) {
-      console.error('Supabase profile insert error:', profileError);
-      return res.render('signup', { error: 'Account created, but failed to save user profile. ' + profileError.message });
-    }
-  } else {
-    console.error('No user object returned from Supabase:', data);
-    return res.render('signup', { error: 'Account creation failed. No user object returned.' });
-  }
-
-  res.redirect('/login');
-});
-
-// Recipe (GET)
-app.get(['/recipe', '/recipe/'], (req, res) => {
-  res.render('recipe');
-});
-
-// Add Recipe (POST)
-app.post('/addrecip', async (req, res) => {
-  const { title, description, ingredients } = req.body;
-  // You may want to add user authentication here
+// Test Supabase connection route
+app.get('/supabase-test', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('recipes').insert([
-      { title, description, ingredients } // Add other fields as needed
-    ]);
+    const { data, error } = await supabase.from('recipes').select('*').limit(1);
     if (error) {
-      return res.render('addrecip', { title: 'Add Recipe', error: error.message });
+      return res.status(500).json({ connected: false, error: error.message });
     }
-    res.redirect('/recipe');
+    res.json({ connected: true, example: data });
   } catch (err) {
-    res.render('addrecip', { title: 'Add Recipe', error: 'Failed to add recipe.' });
+    res.status(500).json({ connected: false, error: err.message });
   }
 });
 
-// Add other routes (dashboard, recipes, etc.)
+// Example route to check if Supabase is receiving user input
+app.post('/supabase-debug', express.json(), async (req, res) => {
+  // Log the incoming request body
+  console.log('Received POST /supabase-debug:', req.body);
 
-// Error handling
-app.use((req, res) => {
-  res.status(404).render('404');
+  // Try to insert the user input into a test table (e.g., 'debug_input')
+  // Uncomment and adjust the table name/fields as needed:
+  // const { data, error } = await supabase
+  //   .from('debug_input')
+  //   .insert([req.body]);
+  // if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ received: req.body });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).render('500');
+// Example: Add a POST /add-recipe endpoint to insert a recipe into Supabase
+app.post('/add-recipe', express.json(), async (req, res) => {
+  try {
+    const { title, ingredients, instructions } = req.body;
+    const { data, error } = await supabase
+      .from('recipes')
+      .insert([{ title, ingredients, instructions }])
+      .select();
+    if (error) return res.status(500).json({ error: error.message });
+    res.status(201).json({ recipe: data[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/recipes', express.json(), async (req, res) => {
+  try {
+    const { title, ingredients, instructions } = req.body;
+    const { data, error } = await supabase
+      .from('recipes')
+      .insert([{ title, ingredients, instructions }])
+      .select();
+    if (error) return res.status(500).json({ error: error.message });
+    res.status(201).json({ recipe: data[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Test route
+app.get('/test', (req, res) => {
+  res.send('Basic test route is working');
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', time: new Date() });
+});
+
+// 404 handler (MUST BE LAST)
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not found',
+    message: 'The requested endpoint does not exist.',
+    available_routes: [
+      '/test',
+      '/health',
+      '/supabase-test',
+      '/supabase-debug',
+      '/add-recipe',
+      '/recipes'
+    ]
+  });
 });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  console.log('Test these endpoints:');
+  console.log(`http://localhost:${PORT}/test`);
+  console.log(`http://localhost:${PORT}/health`);
+  console.log(`http://localhost:${PORT}/supabase-test`);
+  console.log(`http://localhost:${PORT}/supabase-debug`);
+  console.log(`http://localhost:${PORT}/add-recipe`);
+  console.log(`http://localhost:${PORT}/recipes`);
 });
