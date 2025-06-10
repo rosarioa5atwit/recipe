@@ -1,115 +1,234 @@
-// server.js
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
+const fs = require('fs');
 const app = express();
-const PORT = 3000;
+const PORT = 3002;
 
-// SUPABASE SETUP
+// ======================
+// 1. SUPABASE SETUP & DEBUG
+// ======================
 require('dotenv').config();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Debug: Check if Supabase is linked and .env is loaded
+console.log('\n=== Supabase Initialization ===');
 console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase ANON KEY:', supabaseAnonKey ? 'Loaded' : 'Missing');
+console.log('Supabase ANON KEY:', supabaseAnonKey ? '*** Loaded ***' : '❌ MISSING');
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ ERROR: SUPABASE_URL or SUPABASE_ANON_KEY is missing. Check your .env file.');
+  console.error('FATAL: Missing Supabase credentials. Check .env file.');
   process.exit(1);
 }
 
-// Test Supabase connection route
-app.get('/supabase-test', async (req, res) => {
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Realtime debugger (logs all DB changes)
+supabase
+  .channel('supabase-debug')
+  .on('postgres_changes', { event: '*' }, (payload) => {
+    console.log('\n🔔 Supabase DB Change:', payload);
+  })
+  .subscribe();
+
+// ======================
+// 2. EXPRESS MIDDLEWARE
+// ======================
+app.use(express.json()); // For JSON bodies
+app.use(express.urlencoded({ extended: true })); // For form data
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Request logger middleware
+app.use((req, res, next) => {
+  console.log(`\n[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Request Body:', req.body);
+  next();
+});
+
+// ======================
+// 3. DEBUG ROUTES
+// ======================
+
+// Health Check
+app.get('/health', (req, res) => {
+  console.log('✅ Health check passed');
+  res.json({ status: 'healthy', supabaseConnected: !!supabase });
+});
+
+// Supabase Connection Test
+app.get('/supabase-status', async (req, res) => {
+  console.log('\n=== Testing Supabase Connection ===');
   try {
-    const { data, error } = await supabase.from('recipes').select('*').limit(1);
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('*')
+      .limit(1);
+
     if (error) {
-      return res.status(500).json({ connected: false, error: error.message });
+      console.error('❌ Supabase Error:', error);
+      return res.status(500).json({ 
+        connected: false, 
+        error: error.message 
+      });
     }
-    res.json({ connected: true, example: data });
+
+    console.log('✅ Supabase Connected. Sample Data:', data);
+    res.json({ connected: true, data });
   } catch (err) {
+    console.error('❌ Unexpected Error:', err);
     res.status(500).json({ connected: false, error: err.message });
   }
 });
 
-// Example route to check if Supabase is receiving user input
-app.post('/supabase-debug', express.json(), async (req, res) => {
-  // Log the incoming request body
-  console.log('Received POST /supabase-debug:', req.body);
+// ======================
+// 4. AUTH ROUTES (WITH DEBUG)
+// ======================
 
-  // Try to insert the user input into a test table (e.g., 'debug_input')
-  // Uncomment and adjust the table name/fields as needed:
-  // const { data, error } = await supabase
-  //   .from('debug_input')
-  //   .insert([req.body]);
-  // if (error) return res.status(500).json({ error: error.message });
+// Login
+app.post('/login', async (req, res) => {
+  console.log('\n=== Login Attempt ===');
+  console.log('Credentials:', { email: req.body.email, password: '***' });
 
-  res.json({ received: req.body });
-});
-
-// Example: Add a POST /add-recipe endpoint to insert a recipe into Supabase
-app.post('/add-recipe', express.json(), async (req, res) => {
   try {
-    const { title, ingredients, instructions } = req.body;
-    const { data, error } = await supabase
-      .from('recipes')
-      .insert([{ title, ingredients, instructions }])
-      .select();
-    if (error) return res.status(500).json({ error: error.message });
-    res.status(201).json({ recipe: data[0] });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: req.body.email,
+      password: req.body.password
+    });
+
+    if (error) {
+      console.error('❌ Login Failed:', error.message);
+      return res.render('login', { error: error.message });
+    }
+
+    console.log('✅ Login Success:', data.user.email);
+    res.redirect('/');
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ Login Crash:', err);
+    res.render('login', { error: 'System error' });
   }
 });
 
-app.post('/recipes', express.json(), async (req, res) => {
+// Signup
+app.post('/signup', async (req, res) => {
+  console.log('\n=== Signup Attempt ===');
+  console.log('Details:', { 
+    email: req.body.email, 
+    password: '***', 
+    username: req.body.username 
+  });
+
   try {
-    const { title, ingredients, instructions } = req.body;
-    const { data, error } = await supabase
-      .from('recipes')
-      .insert([{ title, ingredients, instructions }])
-      .select();
-    if (error) return res.status(500).json({ error: error.message });
-    res.status(201).json({ recipe: data[0] });
+    const { data, error } = await supabase.auth.signUp({
+      email: req.body.email,
+      password: req.body.password,
+      options: {
+        data: { username: req.body.username }
+      }
+    });
+
+    if (error) {
+      console.error('❌ Signup Failed:', error.message);
+      return res.render('signup', { error: error.message });
+    }
+
+    console.log('✅ Signup Success:', data.user?.email);
+    res.redirect('/login');
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ Signup Crash:', err);
+    res.render('signup', { error: 'System error' });
   }
 });
 
-// Test route
-app.get('/test', (req, res) => {
-  res.send('Basic test route is working');
+// ======================
+// 5. RECIPE ROUTES (WITH DEBUG)
+// ======================
+
+// Add Recipe
+app.post('/addrecip', async (req, res) => {
+  console.log('\n=== New Recipe Submission ===');
+  console.log('Form Data:', req.body);
+
+  try {
+    // Insert main recipe
+    const { data: recipe, error: recipeError } = await supabase
+      .from('recipes')
+      .insert({
+        title: req.body.title,
+        description: req.body.description,
+        prep_time: req.body.prepTime,
+        cook_time: req.body.cookTime,
+        servings: req.body.servings
+      })
+      .select()
+      .single();
+
+    if (recipeError) {
+      console.error('❌ Recipe Insert Failed:', recipeError);
+      return res.render('addrecip', { error: recipeError.message });
+    }
+
+    console.log('✅ Recipe Created:', recipe.id);
+
+    // Handle ingredients
+    if (req.body['ingredient-name']) {
+      const ingredients = Array.isArray(req.body['ingredient-name']) 
+        ? req.body['ingredient-name'].map((name, i) => ({
+            name,
+            unit: req.body['ingredient-unit'][i]
+          }))
+        : [{ 
+            name: req.body['ingredient-name'], 
+            unit: req.body['ingredient-unit'] 
+          }];
+
+      const { error: ingError } = await supabase
+        .from('recipe_ingredients')
+        .insert(ingredients.map(ing => ({
+          recipe_id: recipe.id,
+          name: ing.name,
+          unit: ing.unit
+        })));
+
+      if (ingError) {
+        console.error('❌ Ingredients Insert Failed:', ingError);
+        return res.render('addrecip', { error: 'Recipe saved but ingredients failed' });
+      }
+
+      console.log('✅ Ingredients Added:', ingredients.length);
+    }
+
+    res.redirect('/recipe');
+  } catch (err) {
+    console.error('❌ System Error:', err);
+    res.render('addrecip', { error: 'Complete system failure' });
+  }
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', time: new Date() });
-});
+// ======================
+// 6. ERROR HANDLING
+// ======================
 
-// 404 handler (MUST BE LAST)
+// 404 Handler (MUST BE LAST)
 app.use((req, res) => {
+  console.error(`❌ 404: ${req.method} ${req.path} not found`);
   res.status(404).json({
     error: 'Not found',
-    message: 'The requested endpoint does not exist.',
     available_routes: [
-      '/test',
       '/health',
-      '/supabase-test',
-      '/supabase-debug',
-      '/add-recipe',
-      '/recipes'
+      '/supabase-status',
+      '/login (POST)',
+      '/signup (POST)',
+      '/addrecip (POST)'
     ]
   });
 });
 
-// Start server
+// ======================
+// 7. START SERVER
+// ======================
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log('Test these endpoints:');
-  console.log(`http://localhost:${PORT}/test`);
-  console.log(`http://localhost:${PORT}/health`);
-  console.log(`http://localhost:${PORT}/supabase-test`);
-  console.log(`http://localhost:${PORT}/supabase-debug`);
-  console.log(`http://localhost:${PORT}/add-recipe`);
-  console.log(`http://localhost:${PORT}/recipes`);
+  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+  console.log('Debug Endpoints:');
+  console.log(`- http://localhost:${PORT}/health`);
+  console.log(`- http://localhost:${PORT}/supabase-status`);
 });
