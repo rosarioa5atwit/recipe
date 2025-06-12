@@ -1,27 +1,29 @@
 {
   "name": "recipe",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+  "description": "",
+  "keywords": [],
+  "homepage": "https://github.com/rosarioa5atwit/recipe#readme",
+  "bugs": {
+    "url": "https://github.com/rosarioa5atwit/recipe/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rosarioa5atwit/recipe.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/rosarioa5atwit/recipe/issues"
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
-  "homepage": "https://github.com/rosarioa5atwit/recipe#readme",
-  "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.5.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",

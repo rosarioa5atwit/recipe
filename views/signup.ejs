@@ -2,8 +2,6 @@
 
 <form id="signupForm" action="/signup" method="POST" onsubmit="return validateSignupForm()">
   <div class="form-group">
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username" required>
     <label for="email">Email:</label>
     <input type="email" id="email" name="email" required>
     <label for="password">Password:</label>
@@ -11,6 +9,9 @@
     <label for="confirmPassword">Confirm Password:</label>
     <input type="password" id="confirmPassword" name="confirmPassword" required>
   </div>
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
   <button type="submit">Sign Up</button>
   <p class="login-link">
     Already have an account? <a href="/login">Login</a>
