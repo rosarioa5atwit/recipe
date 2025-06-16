@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(express.static('public')); // Serve static files from public directory
 app.set('view engine', 'ejs');
 
 // 2. Supabase Client ======================================
@@ -141,7 +142,7 @@ app.get('/recipes', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
   try {
-    // Simplified query - just get basic recipe data for now
+    // Simple query without complex joins
     const { data: recipes, error } = await req.supabase
       .from('recipes')
       .select('id, title, base_servings, prep_time, cook_time, created_at')
@@ -149,8 +150,8 @@ app.get('/recipes', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.log('Recipes fetch error:', error);
-      // If recipes table doesn't exist, just show empty state
+      console.error('Recipes fetch error:', error);
+      // If the table doesn't exist, show empty state instead of error
       return res.render('recipes', {
         user: req.user,
         recipes: []
@@ -177,46 +178,199 @@ app.get('/recipes/new', (req, res) => {
   res.render('add-recipe', { user: req.user });
 });
 
+// View Individual Recipe
+app.get('/recipes/:id', async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+
+  try {
+    const { data: recipe, error } = await req.supabase
+      .from('recipes')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id) // Ensure user can only view their own recipes
+      .single();
+
+    if (error) {
+      console.log('Recipe fetch error:', error);
+      return res.status(404).render('error', { message: 'Recipe not found' });
+    }
+
+    if (!recipe) {
+      return res.status(404).render('error', { message: 'Recipe not found' });
+    }
+
+    res.render('recipe-detail', {
+      user: req.user,
+      recipe: recipe
+    });
+  } catch (err) {
+    console.error('Recipe view error:', err);
+    res.status(500).render('error', { message: 'Failed to load recipe' });
+  }
+});
+
+// Recipe Adjustment/Scaling Page
+app.get('/recipes/:id/adjust', async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+
+  try {
+    const { data: recipe, error } = await req.supabase
+      .from('recipes')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error || !recipe) {
+      return res.status(404).render('error', { message: 'Recipe not found' });
+    }
+
+    res.render('recipe-adjust', {
+      user: req.user,
+      recipe: recipe
+    });
+  } catch (err) {
+    console.error('Recipe adjust page error:', err);
+    res.status(500).render('error', { message: 'Failed to load recipe for adjustment' });
+  }
+});
+
 // Save Recipe
 app.post('/recipes', async (req, res) => {
   if (!req.user) return res.status(401).send('Unauthorized');
 
   try {
-    console.log('Attempting to save recipe:', req.body.title);
-    
-    // Simple recipe save - just basic info for now
-    const recipeData = {
-      title: req.body.title,
-      instructions: req.body.instructions,
-      base_servings: parseInt(req.body.servings) || 1,
-      prep_time: parseInt(req.body.prep_time) || 0,
-      cook_time: parseInt(req.body.cook_time) || 0,
-      user_id: req.user.id
-    };
-
+    // 1. Save basic recipe info
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
-      .insert(recipeData)
+      .insert({
+        title: req.body.title,
+        instructions: req.body.instructions,
+        base_servings: parseInt(req.body.servings),
+        prep_time: parseInt(req.body.prep_time),
+        cook_time: parseInt(req.body.cook_time),
+        user_id: req.user.id
+      })
       .select()
       .single();
 
-    if (recipeError) {
-      console.log('Recipe save error:', recipeError);
-      return res.render('add-recipe', {
+    if (recipeError) throw recipeError;
+
+    // 2. Process ingredients
+    const ingredients = Array.isArray(req.body.ingredients) 
+      ? req.body.ingredients 
+      : [req.body.ingredients];
+
+    const ingredientInserts = ingredients.filter(i => i.name.trim() !== '').map(ing => ({
+      recipe_id: recipe.id,
+      name: ing.name,
+      amount: parseFloat(ing.amount),
+      unit: ing.unit
+    }));
+
+    // 3. Save ingredients
+    if (ingredientInserts.length > 0) {
+      const { error: ingError } = await req.supabase
+        .from('recipe_ingredients')
+        .insert(ingredientInserts);
+
+      if (ingError) throw ingError;
+    }
+
+    res.redirect(`/recipes/${recipe.id}`);
+  } catch (err) {
+    console.error('Save recipe error:', err);
+    res.status(500).render('add-recipe', {
+      user: req.user,
+      error: 'Failed to save recipe',
+      formData: req.body
+    });
+  }
+});
+
+// Delete Recipe
+app.delete('/recipes/:id', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const { error } = await req.supabase
+      .from('recipes')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id); // Ensure user can only delete their own recipes
+
+    if (error) {
+      console.log('Recipe delete error:', error);
+      return res.status(500).json({ error: 'Failed to delete recipe' });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Recipe delete error:', err);
+    res.status(500).json({ error: 'Failed to delete recipe' });
+  }
+});
+
+// Edit Recipe Form
+app.get('/recipes/:id/edit', async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+
+  try {
+    const { data: recipe, error } = await req.supabase
+      .from('recipes')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error || !recipe) {
+      return res.status(404).render('error', { message: 'Recipe not found' });
+    }
+
+    res.render('edit-recipe', {
+      user: req.user,
+      recipe: recipe
+    });
+  } catch (err) {
+    console.error('Recipe edit form error:', err);
+    res.status(500).render('error', { message: 'Failed to load recipe for editing' });
+  }
+});
+
+// Update Recipe
+app.put('/recipes/:id', async (req, res) => {
+  if (!req.user) return res.status(401).send('Unauthorized');
+
+  try {
+    const { error } = await req.supabase
+      .from('recipes')
+      .update({
+        title: req.body.title,
+        instructions: req.body.instructions,
+        base_servings: parseInt(req.body.servings),
+        prep_time: parseInt(req.body.prep_time),
+        cook_time: parseInt(req.body.cook_time),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
+
+    if (error) {
+      console.log('Recipe update error:', error);
+      return res.status(500).render('edit-recipe', {
         user: req.user,
-        error: 'Could not save recipe. Database table may not exist yet.',
-        formData: req.body
+        recipe: req.body,
+        error: 'Failed to update recipe'
       });
     }
 
-    console.log('Recipe saved successfully:', recipe.id);
-    res.redirect('/recipes');
+    res.redirect(`/recipes/${req.params.id}`);
   } catch (err) {
-    console.error('Save recipe error:', err);
-    res.render('add-recipe', {
+    console.error('Recipe update error:', err);
+    res.status(500).render('edit-recipe', {
       user: req.user,
-      error: 'Failed to save recipe. Please try again.',
-      formData: req.body
+      recipe: req.body,
+      error: 'Failed to update recipe'
     });
   }
 });
