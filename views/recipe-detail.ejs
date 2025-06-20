@@ -6,7 +6,9 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1><%= recipe.title %></h1>
                 <a href="/recipes" class="btn btn-outline-secondary">← Back to Recipes</a>
-            </div>            <div class="card mb-4">
+            </div>
+            
+            <div class="card mb-4">
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4">
@@ -32,19 +34,8 @@
                             <p class="mb-0"><%= recipe.cook_time || 0 %> minutes</p>
                         </div>
                     </div>
-                    
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-primary btn-sm" onclick="setServings(2)">2 servings</button>
-                                <button class="btn btn-primary btn-sm" onclick="setServings(4)">4 servings</button>
-                                <button class="btn btn-primary btn-sm" onclick="setServings(6)">6 servings</button>
-                                <button class="btn btn-primary btn-sm" onclick="setServings(8)">8 servings</button>
-                                <button class="btn btn-outline-secondary btn-sm" onclick="resetServings()">Reset</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>            </div>
+                </div>
+            </div>
 
             <!-- Demo Ingredients Section (for scaling demonstration) -->
             <div class="card mb-4">
@@ -95,7 +86,8 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Recipe Actions</h5>
-                </div>                <div class="card-body">
+                </div>
+                <div class="card-body">
                     <div class="d-grid gap-2">
                         <a href="/recipes/<%= recipe.id %>/adjust" class="btn btn-primary">⚖️ Adjust Recipe Portions</a>
                         <button class="btn btn-outline-primary" onclick="window.print()">🖨️ Print Recipe</button>
@@ -126,6 +118,17 @@
 // Recipe scaling functionality
 const originalServings = <%= typeof recipe.base_servings !== 'undefined' ? recipe.base_servings : 1 %>;
 let currentServings = originalServings;
+
+// Output recipe data to console
+console.log('*** RECIPE DATA ***');
+console.log('Title:', '<%= recipe.title %>');
+console.log('Servings:', <%= recipe.base_servings || 1 %>);
+console.log('Prep Time:', <%= recipe.prep_time || 0 %>, 'minutes');
+console.log('Cook Time:', <%= recipe.cook_time || 0 %>, 'minutes');
+console.log('Instructions:', `<%= recipe.instructions ? recipe.instructions.replace(/\n/g, '\\n') : 'No instructions' %>`);
+console.log('Created:', '<%= new Date(recipe.created_at).toLocaleDateString() %>');
+console.log('Recipe ID:', '<%= recipe.id %>');
+console.log('*** END RECIPE ***');
 
 function adjustServings(change) {
     const newServings = currentServings + change;
@@ -202,6 +205,15 @@ function deleteRecipe(recipeId) {
         });
     }
 }
+
+// Load data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('*** RECIPE DETAIL PAGE ***');
+    console.log('Recipe Title:', '<%= recipe.title %>');
+    console.log('Servings:', <%= recipe.base_servings || 1 %>);
+    console.log('Instructions:', `<%= recipe.instructions ? recipe.instructions.replace(/\n/g, '\\n').replace(/'/g, "\\'") : 'No instructions' %>`);
+    console.log('*** END RECIPE DETAIL ***');
+});
 </script>
 
 <%- include('parts/footer') %>

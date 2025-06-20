@@ -1,271 +1,261 @@
 <%- include('parts/header', { title: 'Add Recipe' }) %>
 
-<div class="container mt-4">
-  <div class="row justify-content-center">
-    <div class="col-lg-8">
-      <div class="card shadow">
-        <div class="card-body p-4">
-          <h2 class="mb-4">Create New Recipe</h2>
-          <% if (typeof error !== 'undefined' && error) { %>
-            <div class="alert alert-danger"><%= error %></div>
-          <% } %>
-
-          <form id="recipeForm" action="/recipes" method="POST" enctype="multipart/form-data">
-            <!-- Optionally include user id as a hidden field if available -->
-            <% if (typeof user !== 'undefined' && user && user.id) { %>
-              <input type="hidden" name="user_id" value="<%= user.id %>">
-            <% } %>
-            <!-- Basic Info -->
-            <div class="mb-4">
-              <div class="mb-3">
-                <label for="title" class="form-label">Recipe Title</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  id="title" 
-                  name="title" 
-                  required
-                  placeholder="e.g. Grandma's Chocolate Chip Cookies"
-                >
-              </div>
-              
-              <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea 
-                  class="form-control" 
-                  id="description" 
-                  name="description" 
-                  rows="2"
-                  placeholder="What makes this recipe special?"
-                ></textarea>
-              </div>
-              
-              <div class="row">
-                <div class="col-md-4 mb-3">
-                  <label for="prepTime" class="form-label">Prep Time (mins)</label>
-                  <input 
-                    type="number" 
-                    class="form-control" 
-                    id="prepTime" 
-                    name="prepTime" 
-                    min="0"
-                  >
-                </div>
-                <div class="col-md-4 mb-3">
-                  <label for="cookTime" class="form-label">Cook Time (mins)</label>
-                  <input 
-                    type="number" 
-                    class="form-control" 
-                    id="cookTime" 
-                    name="cookTime" 
-                    min="0"
-                  >
-                </div>
-                <div class="col-md-4 mb-3">
-                  <label for="servings" class="form-label">Servings</label>
-                  <input 
-                    type="number" 
-                    class="form-control" 
-                    id="servings" 
-                    name="servings" 
-                    min="1"
-                    value="4"
-                  >
-                </div>
-              </div>
-            </div>
-            
-            <!-- Image Upload -->
-            <div class="mb-4">
-              <label for="recipeImage" class="form-label">Recipe Image</label>
-              <input 
-                type="file" 
-                class="form-control" 
-                id="recipeImage" 
-                name="image"
-                accept="image/*"
-              >
-              <div class="preview-container mt-2" id="imagePreview" style="display:none;">
-                <img id="previewImage" class="img-thumbnail" style="max-height: 200px;">
-              </div>
-            </div>
-            
-
-
-            <!-- Ingredients Section -->
-            <div class="mb-4">
-              <h4 class="d-flex justify-content-between align-items-center">
-                Ingredients
-              </h4>
-              <div class="row g-2 mb-2">
-                <div class="col-sm-6">
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    id="ingredientNameInput"
-                    placeholder="Ingredient name"
-                  >
-                </div>
-                <div class="col-sm-3">
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    id="ingredientUnitInput"
-                    placeholder="Unit (e.g. cups, tsp)"
-                  >
-                </div>
-                <div class="col-sm-3">
-                  <button type="button" id="addIngredientBtn" class="btn btn-primary w-100">
-                    <i class="bi bi-plus"></i> Add Ingredient
-                  </button>
-                </div>
-              </div>
-              <div id="ingredientsContainer">
-                <!-- Added ingredients will appear here -->
-              </div>
-            </div>
-            
-            <!-- Instructions -->
-            <div class="mb-4">
-              <h4>Instructions</h4>
-              <div id="instructionsContainer">
-                <div class="instruction-step mb-3">
-                  <div class="input-group">
-                    <span class="input-group-text">1</span>
-                    <textarea 
-                      class="form-control" 
-                      name="instructions[]" 
-                      placeholder="Describe this step..."
-                      required
-                    ></textarea>
-                    <button type="button" class="btn btn-outline-danger remove-step" disabled>
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <button type="button" id="addStepBtn" class="btn btn-sm btn-outline-primary mt-2">
-                <i class="bi bi-plus"></i> Add Step
-              </button>
-            </div>
-            <!-- Submit Button -->
-            <div class="d-grid">
-              <button type="submit" class="btn btn-success btn-lg">
-                <i class="bi bi-save"></i> Save Recipe
-              </button>
-            </div>
-          </form>
+<div class="container">
+    <h1>Add New Recipe</h1>
+    
+    <form id="recipeForm" action="/recipes" method="POST" class="needs-validation" novalidate>
+        <div class="mb-3">
+            <label for="title" class="form-label">Recipe Title *</label>
+            <input type="text" class="form-control" id="title" name="title" required>
         </div>
-      </div>
-    </div>
-  </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="servings" class="form-label">Servings *</label>
+                <input type="number" class="form-control" id="servings" name="servings" min="1" required>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="prep_time" class="form-label">Prep Time (minutes)</label>
+                <input type="number" class="form-control" id="prep_time" name="prep_time" min="0">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="cook_time" class="form-label">Cook Time (minutes)</label>
+                <input type="number" class="form-control" id="cook_time" name="cook_time" min="0">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Ingredients *</label>
+            <div id="ingredients-container">
+                <div class="ingredient-row mb-2">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <input type="number" step="0.01" class="form-control" name="ingredients[0][amount]" placeholder="Amount" required>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select unit-dropdown" name="ingredients[0][unit]" data-index="0">
+                                <option value="">Select unit...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <select class="form-select ingredient-dropdown" name="ingredients[0][name]" data-index="0" required>
+                                <option value="">Select ingredient...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-ingredient">×</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="add-ingredient" class="btn btn-outline-secondary">+ Add Ingredient</button>
+        </div>
+
+        <div class="mb-3">
+            <label for="instructions" class="form-label">Instructions *</label>
+            <textarea class="form-control" id="instructions" name="instructions" rows="6" required></textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Save Recipe</button>
+            <a href="/recipes" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
 </div>
 
-<%- include('parts/footer') %>
 <script>
-// Image preview logic
-document.getElementById('recipeImage').addEventListener('change', function() {
-  const file = this.files[0];
-  const previewContainer = document.getElementById('imagePreview');
-  const previewImage = document.getElementById('previewImage');
-  
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      previewImage.src = e.target.result;
-      previewContainer.style.display = 'block';
+let ingredientCount = 1;
+let ingredientsData = [];
+let unitsData = [];
+
+// Function to fetch ingredients (only once)
+async function fetchIngredients() {
+    if (ingredientsData.length > 0) return; // Don't fetch if already loaded
+    
+    try {
+        console.log('Fetching ingredients from API...');
+        const response = await fetch('/api/ingredients');
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch ingredients');
+        }
+        
+        const data = await response.json();
+        console.log('*** INGREDIENTS FETCHED ***');
+        if (data && data.length > 0) {
+            data.forEach((ingredient, index) => {
+                console.log(`${index + 1}. ${ingredient.name}`);
+            });
+            ingredientsData = data;
+            populateIngredientDropdowns();
+        } else {
+            console.log('No ingredients found');
+        }
+        console.log('*** END INGREDIENTS ***');
+    } catch (error) {
+        console.error('Error fetching ingredients:', error);
     }
-    reader.readAsDataURL(file);
-  } else {
-    previewContainer.style.display = 'none';
-  }
+}
+
+// Function to fetch units (only once)
+async function fetchUnits() {
+    if (unitsData.length > 0) return; // Don't fetch if already loaded
+    
+    try {
+        console.log('Fetching units from API...');
+        const response = await fetch('/api/units');
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch units');
+        }
+        
+        const data = await response.json();
+        console.log('Units fetched:', data.length);
+        if (data && data.length > 0) {
+            unitsData = data;
+            populateUnitDropdowns();
+        }
+    } catch (error) {
+        console.error('Error fetching units:', error);
+    }
+}
+
+// Populate ingredient dropdowns (prevent refresh)
+function populateIngredientDropdowns() {
+    const dropdowns = document.querySelectorAll('.ingredient-dropdown');
+    dropdowns.forEach(dropdown => {
+        // Only populate if empty (prevent refresh)
+        if (dropdown.children.length <= 1) {
+            ingredientsData.forEach(ingredient => {
+                const option = document.createElement('option');
+                option.value = ingredient.name;
+                option.textContent = ingredient.name;
+                dropdown.appendChild(option);
+            });
+        }
+    });
+}
+
+// Populate unit dropdowns (prevent refresh)
+function populateUnitDropdowns() {
+    const dropdowns = document.querySelectorAll('.unit-dropdown');
+    dropdowns.forEach(dropdown => {
+        // Only populate if empty (prevent refresh)
+        if (dropdown.children.length <= 1) {
+            unitsData.forEach(unit => {
+                const option = document.createElement('option');
+                option.value = unit.name;
+                option.textContent = unit.name;
+                dropdown.appendChild(option);
+            });
+        }
+    });
+}
+
+// Add ingredient row
+document.getElementById('add-ingredient').addEventListener('click', function() {
+    const container = document.getElementById('ingredients-container');
+    const div = document.createElement('div');
+    div.className = 'ingredient-row mb-2';
+    div.innerHTML = `
+        <div class="row">
+            <div class="col-md-3">
+                <input type="number" step="0.01" class="form-control" name="ingredients[${ingredientCount}][amount]" placeholder="Amount" required>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select unit-dropdown" name="ingredients[${ingredientCount}][unit]" data-index="${ingredientCount}">
+                    <option value="">Select unit...</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <select class="form-select ingredient-dropdown" name="ingredients[${ingredientCount}][name]" data-index="${ingredientCount}" required>
+                    <option value="">Select ingredient...</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger remove-ingredient">×</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(div);
+    
+    // Populate only the new dropdowns
+    const newIngredientDropdown = div.querySelector('.ingredient-dropdown');
+    const newUnitDropdown = div.querySelector('.unit-dropdown');
+    
+    // Populate new ingredient dropdown
+    if (ingredientsData.length > 0) {
+        ingredientsData.forEach(ingredient => {
+            const option = document.createElement('option');
+            option.value = ingredient.name;
+            option.textContent = ingredient.name;
+            newIngredientDropdown.appendChild(option);
+        });
+    }
+    
+    // Populate new unit dropdown
+    if (unitsData.length > 0) {
+        unitsData.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.name;
+            option.textContent = unit.name;
+            newUnitDropdown.appendChild(option);
+        });
+    }
+    
+    ingredientCount++;
 });
 
-// Instructions logic
-document.addEventListener('DOMContentLoaded', () => {
-  const addStepBtn = document.getElementById('addStepBtn');
-  const instructionsContainer = document.getElementById('instructionsContainer');
-
-  addStepBtn.addEventListener('click', function() {
-    const steps = instructionsContainer.querySelectorAll('.instruction-step');
-    const newStepIndex = steps.length + 1;
-
-    const newStep = document.createElement('div');
-    newStep.className = 'instruction-step mb-3';
-    newStep.innerHTML = `
-      <div class="input-group">
-        <span class="input-group-text">${newStepIndex}</span>
-        <textarea 
-          class="form-control" 
-          name="instructions[]" 
-          placeholder="Describe this step..."
-          required
-        ></textarea>
-        <button type="button" class="btn btn-outline-danger remove-step">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    `;
-
-    newStep.querySelector('.remove-step').addEventListener('click', function() {
-      newStep.remove();
-      updateStepIndices();
-    });
-
-    instructionsContainer.appendChild(newStep);
-  });
-
-  function updateStepIndices() {
-    const steps = instructionsContainer.querySelectorAll('.instruction-step');
-    steps.forEach((step, index) => {
-      step.querySelector('.input-group-text').textContent = index + 1;
-    });
-  }
+// Remove ingredient row
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-ingredient')) {
+        e.target.closest('.ingredient-row').remove();
+    }
 });
 
-// Ingredient add logic
-document.addEventListener('DOMContentLoaded', () => {
-  const addIngredientBtn = document.getElementById('addIngredientBtn');
-  const ingredientsContainer = document.getElementById('ingredientsContainer');
-  const ingredientNameInput = document.getElementById('ingredientNameInput');
-  const ingredientUnitInput = document.getElementById('ingredientUnitInput');
-
-  // Ensure form is submitted to the correct route
-  const recipeForm = document.getElementById('recipeForm');
-  recipeForm.setAttribute('action', '/recipes');
-  recipeForm.setAttribute('method', 'POST');
-
-  addIngredientBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    const name = ingredientNameInput.value.trim();
-    const unit = ingredientUnitInput.value.trim();
-    if (!name) return;
-
-    // Create a row for the ingredient
-    const row = document.createElement('div');
-    row.className = 'row g-2 mb-2 ingredient-row';
-    row.innerHTML = `
-      <div class="col-sm-6">
-        <input type="text" class="form-control" name="ingredient-name" value="${name}" readonly>
-      </div>
-      <div class="col-sm-3">
-        <input type="text" class="form-control" name="ingredient-unit" value="${unit}" readonly>
-      </div>
-      <div class="col-sm-3">
-        <button type="button" class="btn btn-outline-danger remove-ingredient w-100">
-          <i class="bi bi-trash"></i> Remove
-        </button>
-      </div>
-    `;
-    row.querySelector('.remove-ingredient').addEventListener('click', function() {
-      row.remove();
+// Add form submission debugging
+document.getElementById('recipeForm').addEventListener('submit', function(e) {
+    console.log('*** FORM SUBMISSION DEBUG ***');
+    
+    // Log all form data
+    const formData = new FormData(this);
+    console.log('Form data entries:');
+    for (let [key, value] of formData.entries()) {
+        console.log(`${key}: "${value}"`);
+    }
+    
+    // Check ingredients specifically
+    const ingredients = [];
+    const ingredientRows = document.querySelectorAll('.ingredient-row');
+    
+    console.log(`Found ${ingredientRows.length} ingredient rows`);
+    
+    ingredientRows.forEach((row, index) => {
+        const amount = row.querySelector(`input[name*="[amount]"]`)?.value;
+        const unit = row.querySelector(`select[name*="[unit]"]`)?.value;
+        const name = row.querySelector(`select[name*="[name]"]`)?.value;
+        
+        const ingredient = { amount, unit, name };
+        console.log(`Ingredient ${index + 1}:`, ingredient);
+        
+        if (!amount || !name) {
+            console.warn(`Ingredient ${index + 1} is missing required data!`);
+        }
+        
+        ingredients.push(ingredient);
     });
-    ingredientsContainer.appendChild(row);
+    
+    console.log('*** END FORM SUBMISSION DEBUG ***');
+    
+    // Don't prevent submission, let it continue
+});
 
-    ingredientNameInput.value = '';
-    ingredientUnitInput.value = '';
-  });
-
-  // ...existing code for instructions and form submission...
+// Load data when page loads (only once)
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, fetching data...');
+    fetchIngredients();
+    fetchUnits();
 });
 </script>
+
+<%- include('parts/footer') %>

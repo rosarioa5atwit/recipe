@@ -1,19 +1,16 @@
-// app.js - Complete Supabase + EJS Implementation
-
-// 1. Setup ================================================
 require('dotenv').config();
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const cookieParser = require('cookie-parser');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3050;
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static('public')); // Serve static files from public directory
+app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
 // 2. Supabase Client ======================================
@@ -55,29 +52,228 @@ app.use(async (req, res, next) => {
 
 // 4. Routes ===============================================
 
+// Add debugging middleware to see all requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// Very simple test route - put this first
+app.get('/hello', (req, res) => {
+  res.send('Hello World! Server is working.');
+});
+
+// Simple test route to verify routing works
+app.get('/test', (req, res) => {
+  console.log('Basic test endpoint hit!');
+  res.send(`
+    <h2>Basic Test</h2>
+    <p>Routing is working!</p>
+    <p>Try: <a href="/test/supabase">Supabase Test</a></p>
+    <p>User: ${req.user ? req.user.email : 'Not logged in'}</p>
+  `);
+});
+
+// Test endpoint to verify Supabase connectivity
+app.get('/test/supabase', async (req, res) => {
+  console.log('Supabase test endpoint hit!');
+  
+  try {
+    console.log('Testing Supabase connection...');
+    console.log('User authenticated:', req.user ? 'Yes' : 'No');
+    
+    if (!req.user) {
+      return res.send(`
+        <h2>Supabase Test - Not Authenticated</h2>
+        <p>Please <a href="/login">login</a> first to test database connectivity.</p>
+        <p>Current path: ${req.path}</p>
+        <p>User: ${req.user ? 'Authenticated' : 'Not authenticated'}</p>
+      `);
+    }
+
+    // Test ingredients table
+    const { data: ingredients, error: ingredientsError } = await req.supabase
+      .from('ingredient')
+      .select('*')
+      .limit(5);
+
+    // Test measurement_units table
+    const { data: units, error: unitsError } = await req.supabase
+      .from('measurement_units')
+      .select('*')
+      .limit(5);
+
+    const html = `
+      <h2>Supabase Database Test Results</h2>
+      
+      <h3>Environment:</h3>
+      <ul>
+        <li><strong>Supabase URL:</strong> ${process.env.SUPABASE_URL}</li>
+        <li><strong>User ID:</strong> ${req.user.id}</li>
+        <li><strong>User Email:</strong> ${req.user.email}</li>
+      </ul>
+
+      <h3>Ingredients Table Test:</h3>
+      ${ingredientsError ? 
+        `<p style="color: red;"><strong>Error:</strong> ${JSON.stringify(ingredientsError, null, 2)}</p>` :
+        `<p style="color: green;"><strong>Success!</strong> Found ${ingredients?.length || 0} ingredients</p>
+         <pre>${JSON.stringify(ingredients, null, 2)}</pre>`
+      }
+
+      <h3>Measurement Units Table Test:</h3>
+      ${unitsError ? 
+        `<p style="color: red;"><strong>Error:</strong> ${JSON.stringify(unitsError, null, 2)}</p>` :
+        `<p style="color: green;"><strong>Success!</strong> Found ${units?.length || 0} units</p>
+         <pre>${JSON.stringify(units, null, 2)}</pre>`
+      }
+
+      <hr>
+      <p><a href="/recipes/new">Back to Add Recipe</a> | <a href="/recipes">Recipes List</a></p>
+    `;
+    
+    res.send(html);
+  } catch (err) {
+    console.error('Supabase test error:', err);
+    res.send(`<h2>Error:</h2><pre>${err.message}\n\n${err.stack}</pre>`);
+  }
+});
+
+// Test endpoint to display a recipe from database
+app.get('/test/recipe', async (req, res) => {
+  console.log('Recipe test endpoint hit!');
+  
+  try {
+    if (!req.user) {
+      return res.send(`
+        <h2>Recipe Test - Not Authenticated</h2>
+        <p>Please <a href="/login">login</a> first to test recipe display.</p>
+      `);
+    }
+
+    // Get the first recipe from the database for this user
+    const { data: recipe, error } = await req.supabase
+      .from('recipes')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .limit(1)
+      .single();
+
+    if (error || !recipe) {
+      return res.send(`
+        <h2>Recipe Test - No Recipe Found</h2>
+        <p>No recipes found in database for user: ${req.user.email}</p>
+        <p><a href="/recipes/new">Create a recipe first</a></p>
+        <p>Error: ${error ? JSON.stringify(error) : 'No data returned'}</p>
+      `);
+    }
+
+    // Console output
+    console.log('*** RECIPE FROM DATABASE ***');
+    console.log('Recipe ID:', recipe.id);
+    console.log('Title:', recipe.title);
+    console.log('Servings:', recipe.base_servings);
+    console.log('Prep Time:', recipe.prep_time);
+    console.log('Cook Time:', recipe.cook_time);
+    console.log('Instructions:', recipe.instructions);
+    console.log('Created:', recipe.created_at);
+    console.log('User ID:', recipe.user_id);
+    console.log('*** END RECIPE ***');
+
+    // HTML output
+    const html = `
+      <h2>Recipe Test - Database Recipe Display</h2>
+      
+      <div style="border: 1px solid #ccc; padding: 20px; margin: 20px 0;">
+        <h3>${recipe.title}</h3>
+        <p><strong>Servings:</strong> ${recipe.base_servings}</p>
+        <p><strong>Prep Time:</strong> ${recipe.prep_time || 0} minutes</p>
+        <p><strong>Cook Time:</strong> ${recipe.cook_time || 0} minutes</p>
+        <p><strong>Instructions:</strong></p>
+        <div style="background: #f5f5f5; padding: 10px; white-space: pre-line;">${recipe.instructions}</div>
+        <p><strong>Created:</strong> ${new Date(recipe.created_at).toLocaleString()}</p>
+        <p><strong>Recipe ID:</strong> ${recipe.id}</p>
+      </div>
+
+      <hr>
+      <p><a href="/recipes/${recipe.id}">View Full Recipe Page</a></p>
+      <p><a href="/recipes">All Recipes</a> | <a href="/recipes/new">Add New Recipe</a></p>
+      
+      <script>
+        console.log('*** RECIPE DATA IN BROWSER ***');
+        console.log('Title: ${recipe.title}');
+        console.log('Servings: ${recipe.base_servings}');
+        console.log('Instructions: ${recipe.instructions.replace(/\n/g, '\\n')}');
+        console.log('*** END BROWSER RECIPE ***');
+      </script>
+    `;
+    
+    res.send(html);
+  } catch (err) {
+    console.error('Recipe test error:', err);
+    res.send(`<h2>Error:</h2><pre>${err.message}\n\n${err.stack}</pre>`);
+  }
+});
+
+// API endpoint to get ingredients
+app.get('/api/ingredients', async (req, res) => {
+  console.log('API ingredients endpoint hit');
+  console.log('User authenticated:', req.user ? 'Yes' : 'No');
+  
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const { data: ingredients, error } = await req.supabase
+      .from('ingredient')
+      .select('id, name')
+      .order('name');
+
+    if (error) throw error;
+
+    res.json(ingredients || []);
+  } catch (err) {
+    console.error('Ingredients fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch ingredients' });
+  }
+});
+
+// API endpoint to get units
+app.get('/api/units', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const { data: units, error } = await req.supabase
+      .from('measurement_units')
+      .select('id, name')
+      .order('name');
+
+    if (error) throw error;
+
+    res.json(units || []);
+  } catch (err) {
+    console.error('Units fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch units' });
+  }
+});
+
 // Home Page
 app.get('/', (req, res) => {
   res.render('index', { user: req.user });
 });
 
-// Login Page
+// Authentication Routes
 app.get('/login', (req, res) => {
   if (req.user) return res.redirect('/recipes');
   res.render('login', { error: null });
 });
 
-// Signup Page
 app.get('/signup', (req, res) => {
   if (req.user) return res.redirect('/recipes');
   res.render('signup', { error: null });
 });
 
-// Login Handler
 app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    console.log('Login attempt for:', email);
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -85,32 +281,31 @@ app.post('/login', async (req, res) => {
     });
 
     if (error) {
-      console.log('Login error:', error.message);
-      return res.render('login', { error: error.message });
+      console.warn(`Login failed for ${email}: ${error.message}`);
+      return res.render('login', { 
+        error: 'Invalid credentials'
+      });
     }
 
-    console.log('Login successful');
-    
-    // Set secure HTTP-only cookie
     res.cookie('sb-access-token', data.session.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 3600000 // 1 hour
+      maxAge: 3600000,
+      sameSite: 'strict'
     });
 
     res.redirect('/recipes');
   } catch (err) {
-    console.error('Login error:', err);
-    res.render('login', { error: err.message });
+    console.error(`Login error: ${err.message}`);
+    res.render('login', { 
+      error: 'Internal server error'
+    });
   }
 });
 
-// Signup Handler
 app.post('/signup', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    console.log('Signup attempt:', { email, password: password ? '[HIDDEN]' : 'missing' });
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -118,31 +313,31 @@ app.post('/signup', async (req, res) => {
     });
 
     if (error) {
-      console.log('Supabase signup error:', error.message);
-      return res.render('signup', { error: error.message });
+      console.warn(`Signup failed for ${email}: ${error.message}`);
+      return res.render('signup', { 
+        error: error.message
+      });
     }
 
-    console.log('Signup successful');
-    // Redirect to login with success message
     res.redirect('/login?message=Please check your email to confirm your account');
   } catch (err) {
-    console.error('Signup exception:', err);
-    res.render('signup', { error: 'Internal server error during sign up.' });
+    console.error(`Signup error: ${err.message}`);
+    res.render('signup', { 
+      error: 'Internal server error'
+    });
   }
 });
 
-// Logout Handler
 app.get('/logout', (req, res) => {
   res.clearCookie('sb-access-token');
   res.redirect('/');
 });
 
-// Recipes List
+// Recipe Routes
 app.get('/recipes', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
   try {
-    // Simple query without complex joins
     const { data: recipes, error } = await req.supabase
       .from('recipes')
       .select('id, title, base_servings, prep_time, cook_time, created_at')
@@ -150,140 +345,199 @@ app.get('/recipes', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Recipes fetch error:', error);
-      // If the table doesn't exist, show empty state instead of error
-      return res.render('recipes', {
-        user: req.user,
-        recipes: []
-      });
+      console.error(`Recipes fetch error: ${error.message}`);
+      return res.render('recipes', { user: req.user, recipes: [] });
     }
 
-    res.render('recipes', {
-      user: req.user,
-      recipes: recipes || []
-    });
+    res.render('recipes', { user: req.user, recipes: recipes || [] });
   } catch (err) {
-    console.error('Recipes fetch error:', err);
-    // Show empty recipes instead of error page
-    res.render('recipes', {
-      user: req.user,
-      recipes: []
-    });
+    console.error(`Recipes fetch error: ${err.message}`);
+    res.render('recipes', { user: req.user, recipes: [] });
   }
 });
 
-// Add Recipe Form
 app.get('/recipes/new', (req, res) => {
   if (!req.user) return res.redirect('/login');
-  res.render('add-recipe', { user: req.user });
+  res.render('addrecip', { user: req.user });
 });
 
-// View Individual Recipe
 app.get('/recipes/:id', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
   try {
-    const { data: recipe, error } = await req.supabase
-      .from('recipes')
-      .select('*')
-      .eq('id', req.params.id)
-      .eq('user_id', req.user.id) // Ensure user can only view their own recipes
-      .single();
-
-    if (error) {
-      console.log('Recipe fetch error:', error);
-      return res.status(404).render('error', { message: 'Recipe not found' });
-    }
-
-    if (!recipe) {
-      return res.status(404).render('error', { message: 'Recipe not found' });
-    }
-
-    res.render('recipe-detail', {
-      user: req.user,
-      recipe: recipe
-    });
-  } catch (err) {
-    console.error('Recipe view error:', err);
-    res.status(500).render('error', { message: 'Failed to load recipe' });
-  }
-});
-
-// Recipe Adjustment/Scaling Page
-app.get('/recipes/:id/adjust', async (req, res) => {
-  if (!req.user) return res.redirect('/login');
-
-  try {
-    const { data: recipe, error } = await req.supabase
+    // Get the recipe
+    const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .select('*')
       .eq('id', req.params.id)
       .eq('user_id', req.user.id)
       .single();
 
-    if (error || !recipe) {
+    if (recipeError || !recipe) {
       return res.status(404).render('error', { message: 'Recipe not found' });
-    }
+    }    // Get the recipe ingredients with ingredient and unit names
+    const { data: ingredients, error: ingredientsError } = await req.supabase
+      .from('recipe_ingredients')
+      .select(`
+        *,
+        ingredient:ingredient_id(name),
+        unit:unit_id(name)
+      `)
+      .eq('recipe_id', req.params.id)
+      .order('id');
 
-    res.render('recipe-adjust', {
-      user: req.user,
-      recipe: recipe
+    if (ingredientsError) {
+      console.error('Ingredients fetch error:', ingredientsError);
+      // Continue without ingredients rather than failing
+      recipe.ingredients = [];
+    } else {
+      recipe.ingredients = ingredients || [];
+    }    console.log('*** RECIPE WITH INGREDIENTS ***');
+    console.log('Recipe:', recipe.title);
+    console.log('Ingredients count:', recipe.ingredients.length);
+    recipe.ingredients.forEach((ing, index) => {
+      console.log(`  ${index + 1}. ${ing.amount} ${ing.unit_id ? `unit_id:${ing.unit_id}` : 'no unit'} ${ing.name}`);
     });
+    console.log('*** END RECIPE ***');
+
+    res.render('recipe-detail', { user: req.user, recipe: recipe });
   } catch (err) {
-    console.error('Recipe adjust page error:', err);
-    res.status(500).render('error', { message: 'Failed to load recipe for adjustment' });
+    console.error('Recipe view error:', err);
+    res.status(500).render('error', { message: 'Failed to load recipe' });
   }
 });
 
-// Save Recipe
 app.post('/recipes', async (req, res) => {
   if (!req.user) return res.status(401).send('Unauthorized');
 
   try {
-    // 1. Save basic recipe info
+    const { title, instructions, servings, prep_time, cook_time, ingredients } = req.body;
+    
+    // Debug logging
+    console.log('*** RECIPE SUBMISSION RECEIVED ***');
+    console.log('Title:', title);
+    console.log('Servings:', servings);
+    console.log('Raw body:', req.body);
+    console.log('Ingredients received:', ingredients);
+    console.log('Ingredients type:', typeof ingredients);
+    console.log('Ingredients is array:', Array.isArray(ingredients));
+    
+    if (ingredients) {
+      console.log('Ingredients breakdown:');
+      if (Array.isArray(ingredients)) {
+        ingredients.forEach((ing, index) => {
+          console.log(`  ${index + 1}. Amount: "${ing.amount}", Unit: "${ing.unit}", Name: "${ing.name}"`);
+        });
+      } else {
+        console.log('Ingredients is not an array:', ingredients);
+      }
+    }
+    console.log('*** END SUBMISSION RECEIVED ***');
+    
+    if (!title || !instructions || !servings) {
+      return res.status(400).render('addrecip', {
+        user: req.user,
+        error: 'Missing required fields'
+      });
+    }
+
+    // Create the recipe first
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .insert({
-        title: req.body.title,
-        instructions: req.body.instructions,
-        base_servings: parseInt(req.body.servings),
-        prep_time: parseInt(req.body.prep_time),
-        cook_time: parseInt(req.body.cook_time),
+        title: title,
+        instructions: instructions,
+        base_servings: parseInt(servings),
+        prep_time: parseInt(prep_time) || 0,
+        cook_time: parseInt(cook_time) || 0,
         user_id: req.user.id
       })
       .select()
       .single();
 
     if (recipeError) throw recipeError;
+    
+    console.log('Recipe created with ID:', recipe.id);    // Process ingredients if they exist
+    if (ingredients && Array.isArray(ingredients)) {
+      const ingredientInserts = [];
+      
+      // Process ingredients sequentially to handle async operations
+      for (let index = 0; index < ingredients.length; index++) {
+        const ingredient = ingredients[index];
+        
+        // Only add ingredients that have both amount and name
+        if (ingredient.name && ingredient.amount && ingredient.amount.trim() !== '') {
+          console.log(`Processing ingredient ${index + 1}: ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`);
+          
+          // Find the ingredient_id from the ingredient name
+          const { data: ingredientRecord, error: ingredientError } = await req.supabase
+            .from('ingredient')
+            .select('id')
+            .eq('name', ingredient.name)
+            .single();
+          
+          if (ingredientError) {
+            console.warn(`Could not find ingredient "${ingredient.name}":`, ingredientError);
+          }
+          
+          // Find the unit_id from the unit name (if provided)
+          let unitRecord = null;
+          if (ingredient.unit && ingredient.unit.trim() !== '') {
+            const { data: unitData, error: unitError } = await req.supabase
+              .from('measurement_units')
+              .select('id')
+              .eq('name', ingredient.unit)
+              .single();
+            
+            if (unitError) {
+              console.warn(`Could not find unit "${ingredient.unit}":`, unitError);
+            } else {
+              unitRecord = unitData;
+            }
+          }
+          
+          ingredientInserts.push({
+            recipe_id: recipe.id,
+            name: ingredient.name,
+            amount: parseFloat(ingredient.amount),
+            ingredient_id: ingredientRecord ? ingredientRecord.id : null,
+            unit_id: unitRecord ? unitRecord.id : null
+          });
+        } else {
+          console.log(`Skipping incomplete ingredient ${index + 1}:`, ingredient);
+        }
+      }
 
-    // 2. Process ingredients
-    const ingredients = Array.isArray(req.body.ingredients) 
-      ? req.body.ingredients 
-      : [req.body.ingredients];
+      // Insert ingredients if any exist
+      if (ingredientInserts.length > 0) {
+        console.log('Inserting ingredients:', ingredientInserts);
+        
+        const { data: insertedIngredients, error: ingredientError } = await req.supabase
+          .from('recipe_ingredients')
+          .insert(ingredientInserts)
+          .select();
 
-    const ingredientInserts = ingredients.filter(i => i.name.trim() !== '').map(ing => ({
-      recipe_id: recipe.id,
-      name: ing.name,
-      amount: parseFloat(ing.amount),
-      unit: ing.unit
-    }));
-
-    // 3. Save ingredients
-    if (ingredientInserts.length > 0) {
-      const { error: ingError } = await req.supabase
-        .from('recipe_ingredients')
-        .insert(ingredientInserts);
-
-      if (ingError) throw ingError;
+        if (ingredientError) {
+          console.error('Ingredient insert error:', ingredientError);
+          // Don't fail the whole recipe, just log the error
+          console.log('Recipe saved but ingredients failed to save');
+        } else {
+          console.log('Successfully inserted ingredients:', insertedIngredients);
+        }
+      } else {
+        console.log('No valid ingredients to insert');
+      }
+    } else {
+      console.log('No ingredients array found or ingredients is not an array');
     }
 
+    // Redirect to the recipe detail page
     res.redirect(`/recipes/${recipe.id}`);
   } catch (err) {
-    console.error('Save recipe error:', err);
-    res.status(500).render('add-recipe', {
+    console.error(`Save recipe error: ${err.message}`);
+    res.status(500).render('addrecip', {
       user: req.user,
-      error: 'Failed to save recipe',
-      formData: req.body
+      error: 'Failed to save recipe: ' + err.message
     });
   }
 });
@@ -309,89 +563,6 @@ app.delete('/recipes/:id', async (req, res) => {
     console.error('Recipe delete error:', err);
     res.status(500).json({ error: 'Failed to delete recipe' });
   }
-});
-
-// Edit Recipe Form
-app.get('/recipes/:id/edit', async (req, res) => {
-  if (!req.user) return res.redirect('/login');
-
-  try {
-    const { data: recipe, error } = await req.supabase
-      .from('recipes')
-      .select('*')
-      .eq('id', req.params.id)
-      .eq('user_id', req.user.id)
-      .single();
-
-    if (error || !recipe) {
-      return res.status(404).render('error', { message: 'Recipe not found' });
-    }
-
-    res.render('edit-recipe', {
-      user: req.user,
-      recipe: recipe
-    });
-  } catch (err) {
-    console.error('Recipe edit form error:', err);
-    res.status(500).render('error', { message: 'Failed to load recipe for editing' });
-  }
-});
-
-// Update Recipe
-app.put('/recipes/:id', async (req, res) => {
-  if (!req.user) return res.status(401).send('Unauthorized');
-
-  try {
-    const { error } = await req.supabase
-      .from('recipes')
-      .update({
-        title: req.body.title,
-        instructions: req.body.instructions,
-        base_servings: parseInt(req.body.servings),
-        prep_time: parseInt(req.body.prep_time),
-        cook_time: parseInt(req.body.cook_time),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', req.params.id)
-      .eq('user_id', req.user.id);
-
-    if (error) {
-      console.log('Recipe update error:', error);
-      return res.status(500).render('edit-recipe', {
-        user: req.user,
-        recipe: req.body,
-        error: 'Failed to update recipe'
-      });
-    }
-
-    res.redirect(`/recipes/${req.params.id}`);
-  } catch (err) {
-    console.error('Recipe update error:', err);
-    res.status(500).render('edit-recipe', {
-      user: req.user,
-      recipe: req.body,
-      error: 'Failed to update recipe'
-    });
-  }
-});
-
-// Legacy routes for compatibility
-app.get('/recipe', (req, res) => {
-  res.redirect('/recipes');
-});
-
-app.get('/addrecipe', (req, res) => {
-  res.redirect('/recipes/new');
-});
-
-app.get('/private', (req, res) => {
-  if (!req.user) return res.redirect('/login');
-  res.render('private', { userEmail: req.user.email });
-});
-
-// Error page
-app.get('/error', (req, res) => {
-  res.render('error', { message: req.query.msg || 'Unknown error' });
 });
 
 // 404 handler
