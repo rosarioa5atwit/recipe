@@ -34,39 +34,34 @@
                             <p class="mb-0"><%= recipe.cook_time || 0 %> minutes</p>
                         </div>
                     </div>
-                </div>
-            </div>
+                </div>            </div>
 
-            <!-- Demo Ingredients Section (for scaling demonstration) -->
+            <!-- Recipe Ingredients Section -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">Ingredients <small class="text-muted">(Demo - shows scaling)</small></h5>
+                    <h5 class="mb-0">Ingredients</h5>
                 </div>
                 <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <span data-original-amount="2">2</span> cups flour
-                        </li>
-                        <li class="mb-2">
-                            <span data-original-amount="1">1</span> cup sugar
-                        </li>
-                        <li class="mb-2">
-                            <span data-original-amount="0.5">½</span> cup butter
-                        </li>
-                        <li class="mb-2">
-                            <span data-original-amount="3">3</span> eggs
-                        </li>
-                        <li class="mb-2">
-                            <span data-original-amount="1">1</span> tsp vanilla extract
-                        </li>
-                    </ul>
+                    <% if (recipe.ingredients && recipe.ingredients.length > 0) { %>
+                        <ul class="list-unstyled">
+                            <% recipe.ingredients.forEach((ingredient, index) => { %>
+                                <li class="mb-2">
+                                    <span data-original-amount="<%= ingredient.amount %>"><%= ingredient.amount %></span>
+                                    <% if (ingredient.unit && ingredient.unit.name) { %>
+                                        <%= ingredient.unit.name %>
+                                    <% } %>
+                                    <%= ingredient.name %>
+                                </li>
+                            <% }); %>
+                        </ul>
+                    <% } else { %>
+                        <p class="text-muted">No ingredients listed for this recipe.</p>
+                    <% } %>
                     <small class="text-muted">
                         💡 Tip: Use the serving adjustment buttons above to see ingredients scale automatically!
                     </small>
                 </div>
-            </div>
-
-            <% if (recipe.instructions) { %>
+            </div>            <% if (recipe.instructions) { %>
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">Instructions</h5>
@@ -89,7 +84,9 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="/recipes/<%= recipe.id %>/adjust" class="btn btn-primary">⚖️ Adjust Recipe Portions</a>
+                        <a href="/recipes/<%= recipe.id %>/adjust" class="btn btn-warning">
+                            ⚖️ Adjust Recipe & Check Ingredients
+                        </a>
                         <button class="btn btn-outline-primary" onclick="window.print()">🖨️ Print Recipe</button>
                         <a href="/recipes/<%= recipe.id %>/edit" class="btn btn-outline-warning">✏️ Edit Recipe</a>
                         <button class="btn btn-outline-danger" onclick="deleteRecipe('<%= recipe.id %>')">🗑️ Delete Recipe</button>
@@ -116,19 +113,18 @@
 
 <script>
 // Recipe scaling functionality
-const originalServings = <%= typeof recipe.base_servings !== 'undefined' ? recipe.base_servings : 1 %>;
+let originalServings = 4; // Will be set from server data
 let currentServings = originalServings;
 
-// Output recipe data to console
-console.log('*** RECIPE DATA ***');
-console.log('Title:', '<%= recipe.title %>');
-console.log('Servings:', <%= recipe.base_servings || 1 %>);
-console.log('Prep Time:', <%= recipe.prep_time || 0 %>, 'minutes');
-console.log('Cook Time:', <%= recipe.cook_time || 0 %>, 'minutes');
-console.log('Instructions:', `<%= recipe.instructions ? recipe.instructions.replace(/\n/g, '\\n') : 'No instructions' %>`);
-console.log('Created:', '<%= new Date(recipe.created_at).toLocaleDateString() %>');
-console.log('Recipe ID:', '<%= recipe.id %>');
-console.log('*** END RECIPE ***');
+// Initialize with actual values when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Get actual values from the page
+    const servingsElement = document.getElementById('current-servings');
+    if (servingsElement) {
+        originalServings = parseInt(servingsElement.textContent) || 4;
+        currentServings = originalServings;
+    }
+});
 
 function adjustServings(change) {
     const newServings = currentServings + change;
@@ -205,15 +201,6 @@ function deleteRecipe(recipeId) {
         });
     }
 }
-
-// Load data when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('*** RECIPE DETAIL PAGE ***');
-    console.log('Recipe Title:', '<%= recipe.title %>');
-    console.log('Servings:', <%= recipe.base_servings || 1 %>);
-    console.log('Instructions:', `<%= recipe.instructions ? recipe.instructions.replace(/\n/g, '\\n').replace(/'/g, "\\'") : 'No instructions' %>`);
-    console.log('*** END RECIPE DETAIL ***');
-});
 </script>
 
 <%- include('parts/footer') %>

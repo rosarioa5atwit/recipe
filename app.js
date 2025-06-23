@@ -396,14 +396,108 @@ app.get('/recipes/:id', async (req, res) => {
     console.log('Recipe:', recipe.title);
     console.log('Ingredients count:', recipe.ingredients.length);
     recipe.ingredients.forEach((ing, index) => {
-      console.log(`  ${index + 1}. ${ing.amount} ${ing.unit_id ? `unit_id:${ing.unit_id}` : 'no unit'} ${ing.name}`);
+      const unitName = ing.unit ? ing.unit.name : 'no unit';
+      const ingredientName = ing.ingredient ? ing.ingredient.name : ing.name;
+      console.log(`  ${index + 1}. ${ing.amount} ${unitName} ${ingredientName}`);
     });
-    console.log('*** END RECIPE ***');
-
-    res.render('recipe-detail', { user: req.user, recipe: recipe });
+    console.log('*** END RECIPE ***');    res.render('recipe-detail', { user: req.user, recipe: recipe });
   } catch (err) {
     console.error('Recipe view error:', err);
     res.status(500).render('error', { message: 'Failed to load recipe' });
+  }
+});
+
+// Recipe Adjust Route
+app.get('/recipes/:id/adjust', async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+
+  try {
+    console.log('*** RECIPE ADJUST ROUTE HIT ***');
+    console.log('Recipe ID:', req.params.id);
+    console.log('User ID:', req.user.id);
+    
+    // Get the recipe
+    const { data: recipe, error: recipeError } = await req.supabase
+      .from('recipes')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (recipeError || !recipe) {
+      console.error('Recipe not found:', recipeError);
+      return res.status(404).render('error', { message: 'Recipe not found' });
+    }
+
+    console.log('Recipe found:', recipe.title);    // Get the recipe ingredients with ingredient and unit names
+    const { data: ingredients, error: ingredientsError } = await req.supabase
+      .from('recipe_ingredients')
+      .select(`
+        *,
+        ingredient:ingredient_id(name),
+        unit:unit_id(name)
+      `)
+      .eq('recipe_id', req.params.id)
+      .order('id');
+
+    if (ingredientsError) {
+      console.error('Ingredients fetch error:', ingredientsError);
+      recipe.ingredients = [];
+    } else {
+      recipe.ingredients = ingredients || [];
+      
+      // For each ingredient, fetch its substitutions from the database
+      for (let i = 0; i < recipe.ingredients.length; i++) {
+        const ingredient = recipe.ingredients[i];
+        
+        if (ingredient.ingredient_id) {
+          // Get substitution groups for this ingredient
+          const { data: substitutionGroups, error: subGroupError } = await req.supabase
+            .from('substitution_groups')
+            .select(`
+              id,
+              note,
+              substitution_items(
+                id,
+                amount,
+                substitute_ingredient:substitute_ingredient_id(name),
+                unit:unit_id(name)
+              )
+            `)
+            .eq('ingredient_id', ingredient.ingredient_id);
+
+          if (!subGroupError && substitutionGroups && substitutionGroups.length > 0) {
+            // Flatten all substitution items from all groups
+            ingredient.substitutions = [];
+            substitutionGroups.forEach(group => {
+              if (group.substitution_items) {
+                group.substitution_items.forEach(item => {
+                  ingredient.substitutions.push({
+                    name: item.substitute_ingredient.name,
+                    amount: item.amount,
+                    unit: item.unit,
+                    ratio: item.amount || 1,
+                    note: group.note
+                  });
+                });
+              }
+            });
+          } else {
+            ingredient.substitutions = [];
+          }
+        } else {
+          ingredient.substitutions = [];
+        }
+      }
+      
+      console.log('Ingredients with substitutions found:', recipe.ingredients.length);
+    }
+
+    console.log('*** RENDERING RECIPE ADJUST PAGE ***');
+    res.render('recipe-adjust', { user: req.user, recipe: recipe });
+  } catch (err) {
+    console.error('Recipe adjust view error:', err);
+    res.status(500).render('error', { message: 'Failed to load recipe adjustment page' });
   }
 });
 
@@ -575,3 +669,33 @@ app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log('Supabase connected to:', process.env.SUPABASE_URL);
 });
+
+// Live reload setup for development
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const livereload = require('livereload');
+    const connectLivereload = require('connect-livereload');
+    
+    // Create livereload server
+    const liveReloadServer = livereload.createServer({
+      exts: ['css', 'js', 'html', 'ejs'],
+      port: 35729
+    });
+    
+    // Watch public and views directories
+    liveReloadServer.watch([
+      __dirname + '/public',
+      __dirname + '/views'
+    ]);
+    
+    // Use livereload middleware
+    app.use(connectLivereload());
+    
+    console.log('🔄 Live reload enabled on port 35729');
+    console.log('📁 Watching: public/ and views/ for CSS, JS, and template changes');
+    console.log('💡 Browser will auto-refresh when you save style.css or any view files');
+    
+  } catch (err) {
+    console.log('⚠️  Live reload packages not installed. Run: npm install livereload connect-livereload');
+  }
+}
