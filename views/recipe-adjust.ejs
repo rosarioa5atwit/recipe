@@ -80,37 +80,31 @@
                                                 <span class="status-badge badge bg-success">✓ Enough</span>
                                             </td>                                            <td>
                                                 <div class="dropdown">
-                                                    <button class="btn btn-outline-warning btn-sm dropdown-toggle substitute-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Find Substitute">
-                                                        🔄 Substitute
-                                                    </button>
+
                                                     <ul class="dropdown-menu">
                                                         <% if (ingredient.substitutions && ingredient.substitutions.length > 0) { %>
-                                                            <li><h6 class="dropdown-header">Available Substitutes:</h6></li>
-                                                            <% ingredient.substitutions.forEach((sub, subIdx) => { %>
-                                                                <li>
-                                                                    <a class="dropdown-item substitute-option" href="#" 
-                                                                       data-ingredient-index="<%= index %>" 
-                                                                       data-substitute="<%= sub.name %>" 
-                                                                       data-ratio="<%= sub.ratio %>">
-                                                                        Use <%= sub.name %>
-                                                                        <% if (sub.amount && sub.unit && sub.unit.name) { %>
-                                                                            (<%= sub.amount %> <%= sub.unit.name %>)
-                                                                        <% } else { %>
-                                                                            (<%= sub.ratio %>:1 ratio)
-                                                                        <% } %>
-                                                                        <% if (sub.note) { %>
-                                                                            <br><small class="text-muted"><%= sub.note %></small>
-                                                                        <% } %>
-                                                                    </a>
-                                                                </li>
-                                                            <% }); %>
-                                                            <li><hr class="dropdown-divider"></li>
                                                             <li>
-                                                                <a class="dropdown-item text-danger remove-substitute" href="#" data-ingredient-index="<%= index %>">
-                                                                    ❌ Remove Substitute
-                                                                </a>
+                                                                <h6 class="dropdown-header">Available Substitutes</h6>
+                                                                <select class="form-select substitute-select mb-2" data-ingredient-index="<%= index %>">
+                                                                    <option value="">Select substitute...</option>
+                                                                    <% ingredient.substitutions.forEach((sub, subIdx) => { %>
+                                                                        <option value="<%= sub.name %>" data-ratio="<%= sub.ratio %>">
+                                                                            <%= sub.name %>
+                                                                            <% if (sub.amount && sub.unit && sub.unit.name) { %>
+                                                                                (<%= sub.amount %> <%= sub.unit.name %>)
+                                                                            <% } else { %>
+                                                                                (<%= sub.ratio %>:1 ratio)
+                                                                            <% } %>
+                                                                            <% if (sub.note) { %>
+                                                                                - <%= sub.note %>
+                                                                            <% } %>
+                                                                        </option>
+                                                                    <% }); %>
+                                                                </select>
+                                                                <button class="btn btn-sm btn-outline-info apply-substitute-btn" type="button" data-ingredient-index="<%= index %>">
+                                                                    Apply Substitute
+                                                                </button>
                                                             </li>
-                                                        <% } else { %>
                                                             <li><h6 class="dropdown-header">No Database Substitutes</h6></li>
                                                             <li><span class="dropdown-item text-muted">No substitutions found in database for this ingredient</span></li>
                                                             <li><hr class="dropdown-divider"></li>
@@ -156,10 +150,7 @@
                                 <button class="btn btn-outline-danger" onclick="setAllMissing()">✗ Missing All</button>
                                 <button class="btn btn-outline-warning" onclick="setHalfAmounts()">½ Half Amounts</button>
                             </div>
-                        </div>
-                        <div class="col-md-6 text-end">
-                            <button class="btn btn-info" onclick="generateShoppingList()">🛒 Shopping List</button>
-                            <button class="btn btn-success" onclick="savePreferences()">💾 Save Preferences</button>
+                        
                         </div>
                     </div>
                 </div>
@@ -226,26 +217,6 @@
     </div>
 </div>
 
-<style>
-.table tr[data-ingredient] {
-    transition: all 0.3s ease;
-}
-.table tr[data-ingredient].insufficient {
-    background-color: #fff5f5;
-    border-left: 4px solid #dc3545;
-}
-.table tr[data-ingredient].partial {
-    background-color: #fffbf0;
-    border-left: 4px solid #ffc107;
-}
-.table tr[data-ingredient].substituted {
-    background-color: #f0f8ff;
-    border-left: 4px solid #0dcaf0;
-}
-.status-badge {
-    transition: all 0.3s ease;
-}
-</style>
 
 <script>
 let originalServings = 4; // Will be initialized from page data
@@ -325,6 +296,7 @@ function applySubstitute(index, substituteName, ratio) {
     // Update status
     updateIngredientStatus(index);
     updateSubstitutionsList();
+    updateOverallStats();
     
     console.log(`Applied substitute: ${substituteName} for ${originalName} (ratio: ${ratio})`);
 }
