@@ -451,42 +451,37 @@ app.get('/recipes/:id/adjust', async (req, res) => {
         const ingredient = recipe.ingredients[i];
         
         if (ingredient.ingredient_id) {
-          // Get substitution groups for this ingredient
-          const { data: substitutionGroups, error: subGroupError } = await req.supabase
-            .from('substitution_groups')
+          console.log(`Looking for substitutions for ingredient_id: ${ingredient.ingredient_id}, name: ${ingredient.name}`);
+          
+          // Get substitution items directly for this ingredient
+          const { data: substitutionItems, error: subItemError } = await req.supabase
+            .from('substitution_items')
             .select(`
               id,
-              note,
-              substitution_items(
-                id,
-                amount,
-                substitute_ingredient:substitute_ingredient_id(name),
-                unit:unit_id(name)
-              )
+              ratio,
+              substitute_ingredient:substitute_ingredient_id(name),
+              substitution_group:substitution_group_id(note)
             `)
             .eq('ingredient_id', ingredient.ingredient_id);
 
-          if (!subGroupError && substitutionGroups && substitutionGroups.length > 0) {
-            // Flatten all substitution items from all groups
-            ingredient.substitutions = [];
-            substitutionGroups.forEach(group => {
-              if (group.substitution_items) {
-                group.substitution_items.forEach(item => {
-                  ingredient.substitutions.push({
-                    name: item.substitute_ingredient.name,
-                    amount: item.amount,
-                    unit: item.unit,
-                    ratio: item.amount || 1,
-                    note: group.note
-                  });
-                });
-              }
-            });
+          if (!subItemError && substitutionItems && substitutionItems.length > 0) {
+            ingredient.substitutions = substitutionItems.map(item => ({
+              name: item.substitute_ingredient.name,
+              ratio: item.ratio || 1,
+              note: item.substitution_group ? item.substitution_group.note : null
+            }));
+            console.log(`Found ${ingredient.substitutions.length} substitutions for ingredient: ${ingredient.name}`);
+            console.log('Substitutions:', ingredient.substitutions);
           } else {
             ingredient.substitutions = [];
+            console.log(`No substitutions found for ingredient: ${ingredient.name}`);
+            if (subItemError) {
+              console.log('Substitution query error:', subItemError);
+            }
           }
         } else {
           ingredient.substitutions = [];
+          console.log(`No ingredient_id for: ${ingredient.name}`);
         }
       }
       
@@ -498,6 +493,77 @@ app.get('/recipes/:id/adjust', async (req, res) => {
   } catch (err) {
     console.error('Recipe adjust view error:', err);
     res.status(500).render('error', { message: 'Failed to load recipe adjustment page' });
+  }
+});
+
+// Edit Recipe Route
+app.get('/recipes/:id/edit', async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+
+  try {
+    // Get the recipe
+    const { data: recipe, error: recipeError } = await req.supabase
+      .from('recipes')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (recipeError || !recipe) {
+      return res.status(404).render('error', { message: 'Recipe not found' });
+    }
+
+    res.render('edit-recipe', { user: req.user, recipe: recipe });
+  } catch (err) {
+    console.error('Recipe edit view error:', err);
+    res.status(500).render('error', { message: 'Failed to load recipe for editing' });
+  }
+});
+
+// Update Recipe Route
+app.post('/recipes/:id', async (req, res) => {
+  if (!req.user) return res.status(401).send('Unauthorized');
+
+  try {
+    const { title, instructions, servings, prep_time, cook_time } = req.body;
+    
+    if (!title || !instructions || !servings) {
+      return res.status(400).render('edit-recipe', {
+        user: req.user,
+        recipe: { id: req.params.id, title, instructions, base_servings: servings, prep_time, cook_time },
+        error: 'Missing required fields'
+      });
+    }
+
+    // Update the recipe
+    const { data: recipe, error: recipeError } = await req.supabase
+      .from('recipes')
+      .update({
+        title: title,
+        instructions: instructions,
+        base_servings: parseInt(servings),
+        prep_time: parseInt(prep_time) || 0,
+        cook_time: parseInt(cook_time) || 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (recipeError) throw recipeError;
+    
+    console.log('Recipe updated with ID:', recipe.id);
+
+    // Redirect to the recipe detail page
+    res.redirect(`/recipes/${recipe.id}`);
+  } catch (err) {
+    console.error(`Update recipe error: ${err.message}`);
+    res.status(500).render('edit-recipe', {
+      user: req.user,
+      recipe: { id: req.params.id },
+      error: 'Failed to update recipe: ' + err.message
+    });
   }
 });
 

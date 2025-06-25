@@ -40,7 +40,7 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header bg-success text-white">
-                    <h6 class="mb-0">🥄 Ingredient Availability Checker</h6>
+                    <h6 class="mb-0"> Ingredient Availability Checker</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -48,7 +48,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Ingredient</th>
-                                    <th>Original Amount</th>
+                                    <th>Recipe Needs</th>
                                     <th>Amount I Have</th>
                                     <th>Adjusted Amount</th>
                                     <th>Substitution</th>
@@ -77,57 +77,40 @@
                                                        value="<%= ingredient.amount %>" style="width: 80px;">
                                             </td>
                                             <td>
-                                                <span class="status-badge badge bg-success">✓ Enough</span>
-                                            </td>                                            <td>
+                                                <span class="adjusted-amount-display badge bg-info" id="adjusted-amount-<%= index %>">
+                                                    Enter amounts above
+                                                </span>
+                                            </td>
+                                            <td>
                                                 <div class="dropdown">
-
-                                                    <ul class="dropdown-menu">
+                                                
+                                                    <ul class="dropdown-menu shadow-sm" style="min-width: 200px;">
                                                         <% if (ingredient.substitutions && ingredient.substitutions.length > 0) { %>
-                                                            <li>
-                                                                <h6 class="dropdown-header">Available Substitutes</h6>
-                                                                <select class="form-select substitute-select mb-2" data-ingredient-index="<%= index %>">
-                                                                    <option value="">Select substitute...</option>
-                                                                    <% ingredient.substitutions.forEach((sub, subIdx) => { %>
-                                                                        <option value="<%= sub.name %>" data-ratio="<%= sub.ratio %>">
-                                                                            <%= sub.name %>
-                                                                            <% if (sub.amount && sub.unit && sub.unit.name) { %>
-                                                                                (<%= sub.amount %> <%= sub.unit.name %>)
-                                                                            <% } else { %>
-                                                                                (<%= sub.ratio %>:1 ratio)
-                                                                            <% } %>
-                                                                            <% if (sub.note) { %>
-                                                                                - <%= sub.note %>
-                                                                            <% } %>
-                                                                        </option>
-                                                                    <% }); %>
-                                                                </select>
-                                                                <button class="btn btn-sm btn-outline-info apply-substitute-btn" type="button" data-ingredient-index="<%= index %>">
-                                                                    Apply Substitute
-                                                                </button>
-                                                            </li>
-                                                            <li><h6 class="dropdown-header">No Database Substitutes</h6></li>
-                                                            <li><span class="dropdown-item text-muted">No substitutions found in database for this ingredient</span></li>
+                                                            <li><h6 class="dropdown-header text-primary">
+                                                                <i class="fas fa-star me-1"></i>Available Substitutes
+                                                            </h6></li>
+                                                            <% ingredient.substitutions.forEach((sub, subIdx) => { %>
+                                                                <li>
+                                                                    <a class="dropdown-item substitute-option" href="#" 
+                                                                       data-ingredient-index="<%= index %>" 
+                                                                       data-substitute="<%= sub.name %>" 
+                                                                       data-ratio="<%= sub.ratio || 1 %>">
+                                                                        <i class="fas fa-arrow-right me-2 text-muted"></i><%= sub.name %>
+                                                                    </a>
+                                                                </li>
+                                                            <% }); %>
                                                             <li><hr class="dropdown-divider"></li>
-                                                            <li><h6 class="dropdown-header">Generic Options:</h6></li>
                                                             <li>
-                                                                <a class="dropdown-item substitute-option" href="#" 
-                                                                   data-ingredient-index="<%= index %>" 
-                                                                   data-substitute="substitute ingredient" 
-                                                                   data-ratio="1">
-                                                                    Use Generic Substitute (1:1 ratio)
+                                                                <a class="dropdown-item remove-substitute text-danger" href="#" 
+                                                                   data-ingredient-index="<%= index %>">
+                                                                    <i class="fas fa-times me-2"></i>Remove Substitute
                                                                 </a>
                                                             </li>
-                                                            <li>
-                                                                <a class="dropdown-item substitute-option" href="#" 
-                                                                   data-ingredient-index="<%= index %>" 
-                                                                   data-substitute="alternative ingredient" 
-                                                                   data-ratio="0.75">
-                                                                    Use Alternative (3:4 ratio)
-                                                                </a>
-                                                            </li>
-                                                        <% } %>
-                                                    </ul>
-                                                </div>
+                                                        </ul>
+                                                    </div>
+                                                <% } else { %>
+                                                    <span class="text-muted small">No substitutes available</span>
+                                                <% } %>
                                             </td>
                                         </tr>
                                     <% }); %>
@@ -142,18 +125,7 @@
                         </table>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="btn-group">
-                                <button class="btn btn-outline-success" onclick="setAllAvailable()">✓ Have All</button>
-                                <button class="btn btn-outline-danger" onclick="setAllMissing()">✗ Missing All</button>
-                                <button class="btn btn-outline-warning" onclick="setHalfAmounts()">½ Half Amounts</button>
-                            </div>
-                        
-                        </div>
-                    </div>
-                </div>
+               
             </div>
         </div>
 
@@ -215,8 +187,9 @@
             </div>
         </div>
     </div>
-</div>
 
+
+             
 
 <script>
 let originalServings = 4; // Will be initialized from page data
@@ -232,10 +205,27 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event listeners
     targetServingsInput.addEventListener('change', updateScale);
-      // Have amount inputs
+    
+    // Have amount inputs - set default to recipe amounts for initial display
     document.querySelectorAll('.have-amount').forEach((input, index) => {
-        input.addEventListener('change', () => updateIngredientStatus(index));
-    });    // Substitute dropdown options
+        // Set default to recipe amount initially
+        const row = input.closest('[data-ingredient]');
+        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        input.value = neededAmount;
+        input.placeholder = 'Enter amount you have';
+        
+        input.addEventListener('change', () => {
+            updateIngredientStatus(index);
+            checkForAutoAdjustment();
+        });
+        
+        input.addEventListener('blur', () => {
+            updateIngredientStatus(index);
+            checkForAutoAdjustment();
+        });
+    });
+
+    // Substitute dropdown options
     document.querySelectorAll('.substitute-option').forEach(option => {
         option.addEventListener('click', function(e) {
             e.preventDefault();
@@ -262,18 +252,130 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.substitute-option').length, 'substitute options and',
                 document.querySelectorAll('.remove-substitute').length, 'remove options');
     
-    // Initialize
+    // Initialize with default values (assuming full amounts available)
     updateAllStatuses();
+    // Set initial adjusted amounts to show "can make full recipe"
+    updateAdjustedAmounts(1.0, true);
 });
+
+// Check if we should auto-adjust recipe based on limiting ingredient
+function checkForAutoAdjustment() {
+    const ingredients = document.querySelectorAll('[data-ingredient]');
+    let limitingRatio = 1.0;
+    let hasUserInputs = false;
+    
+    ingredients.forEach(row => {
+        const haveInput = row.querySelector('.have-amount');
+        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        
+        if (haveInput.value && haveInput.value.trim() !== '') {
+            hasUserInputs = true;
+            const haveAmount = parseFloat(haveInput.value) || 0;
+            const ratio = haveAmount / neededAmount;
+            
+            if (ratio < limitingRatio) {
+                limitingRatio = ratio;
+            }
+        }
+    });
+    
+    // If user has provided inputs and limiting ratio is less than 1, suggest adjustment
+    if (hasUserInputs && limitingRatio < 1.0) {
+        const newServings = Math.floor(originalServings * limitingRatio);
+        if (newServings > 0 && newServings !== parseInt(document.getElementById('target-servings').value)) {
+            showAutoAdjustSuggestion(newServings, limitingRatio);
+        }
+    }
+    
+    // Update adjusted amounts to show maximum possible recipe
+    updateAdjustedAmounts(limitingRatio, hasUserInputs);
+}
+
+function showAutoAdjustSuggestion(suggestedServings, ratio) {
+    const suggestion = document.getElementById('auto-adjust-suggestion');
+    if (suggestion) {
+        suggestion.remove();
+    }
+    
+    const suggestionHtml = `
+        <div id="auto-adjust-suggestion" class="alert alert-info alert-dismissible fade show mt-2" role="alert">
+            <strong>💡 Suggestion:</strong> Based on your available ingredients, you could make ${suggestedServings} servings instead. 
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="applyAutoAdjustment(${suggestedServings})">
+                Adjust Recipe
+            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
+}
+
+function applyAutoAdjustment(suggestedServings) {
+    document.getElementById('target-servings').value = suggestedServings;
+    updateScale();
+    document.getElementById('auto-adjust-suggestion').remove();
+}
+
+function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
+    const ingredients = document.querySelectorAll('[data-ingredient]');
+    
+    ingredients.forEach((row, index) => {
+        const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
+        const haveInput = row.querySelector('.have-amount');
+        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        
+        if (!hasUserInputs) {
+            // Default state - show that full recipe can be made
+            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
+            adjustedAmountDisplay.textContent = 'Can make full recipe';
+            return;
+        }
+        
+        if (!haveInput.value || haveInput.value.trim() === '') {
+            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-secondary';
+            adjustedAmountDisplay.textContent = 'Enter amount above';
+            return;
+        }
+        
+        const haveAmount = parseFloat(haveInput.value) || 0;
+        
+        // Calculate the maximum amount that can be used for the recipe
+        // based on the most limiting ingredient
+        const maxUsableAmount = Math.min(haveAmount, neededAmount * limitingRatio);
+        const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
+        
+        if (limitingRatio >= 1.0) {
+            // Can make full recipe or more
+            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
+            adjustedAmountDisplay.textContent = `Use ${formatAmount(neededAmount)} ${unit}`;
+        } else if (limitingRatio > 0) {
+            // Can make partial recipe
+            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-warning';
+            adjustedAmountDisplay.textContent = `Use ${formatAmount(maxUsableAmount)} ${unit}`;
+        } else {
+            // Cannot make recipe
+            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
+            adjustedAmountDisplay.textContent = 'Cannot use';
+        }
+    });
+}
 
 function applySubstitute(index, substituteName, ratio) {
     const row = document.querySelector(`[data-ingredient="${index}"]`);
     if (!row) return;
     
-    const originalName = row.querySelector('.ingredient-name').textContent;
+    console.log(`Applying substitute: ${substituteName} for ingredient ${index} with ratio ${ratio}`);
+    
+    const ingredientNameEl = row.querySelector('.ingredient-name');
+    const originalName = ingredientNameEl.dataset.original || ingredientNameEl.textContent;
+    
+    // Store original name if not already stored
+    if (!ingredientNameEl.dataset.original) {
+        ingredientNameEl.dataset.original = originalName;
+    }
     
     // Update the ingredient name to show substitution
-    row.querySelector('.ingredient-name').innerHTML = `${substituteName} <small class="text-muted">(was ${originalName})</small>`;
+    ingredientNameEl.innerHTML = `${substituteName} <small class="text-muted">(was ${originalName})</small>`;
     
     // Show substitute info
     const substituteInfo = row.querySelector('.substitute-info');
@@ -283,46 +385,65 @@ function applySubstitute(index, substituteName, ratio) {
     // Mark row as substituted
     row.classList.add('substituted');
     
-    // Adjust the needed amount if ratio is different
+    // Get current scale factor
+    const targetServings = parseInt(document.getElementById('target-servings').value);
+    const scaleFactor = targetServings / originalServings;
+    
+    // Adjust the needed amount based on ratio and current scale
     const neededAmountElement = row.querySelector('.needed-amount');
     const originalAmount = parseFloat(neededAmountElement.dataset.original);
-    const adjustedAmount = originalAmount * ratio;
+    const adjustedAmount = originalAmount * ratio * scaleFactor;
     neededAmountElement.textContent = formatAmount(adjustedAmount);
+    
+    // Store the substitute ratio for future scale updates
+    neededAmountElement.dataset.substituteRatio = ratio;
     
     // Update the "have" amount to match the adjusted amount (assuming they'll get the substitute)
     const haveAmountInput = row.querySelector('.have-amount');
-    haveAmountInput.value = adjustedAmount;
+    haveAmountInput.value = formatAmount(adjustedAmount);
     
     // Update status
     updateIngredientStatus(index);
     updateSubstitutionsList();
     updateOverallStats();
-    
-    console.log(`Applied substitute: ${substituteName} for ${originalName} (ratio: ${ratio})`);
 }
 
 function removeSubstitute(index) {
     const row = document.querySelector(`[data-ingredient="${index}"]`);
     if (!row) return;
     
-    // Reset to original ingredient name (you'd need to store this)
-    const substituteInfo = row.querySelector('.substitute-info');
-    const originalName = substituteInfo.textContent.match(/was (.+)\)/)?.[1] || 'Original ingredient';
+    console.log(`Removing substitute for ingredient ${index}`);
     
-    row.querySelector('.ingredient-name').textContent = originalName;
+    const ingredientNameEl = row.querySelector('.ingredient-name');
+    const originalName = ingredientNameEl.dataset.original;
+    
+    if (originalName) {
+        // Reset to original ingredient name
+        ingredientNameEl.textContent = originalName;
+        ingredientNameEl.removeAttribute('data-original');
+    }
+    
+    // Hide substitute info
+    const substituteInfo = row.querySelector('.substitute-info');
     substituteInfo.style.display = 'none';
     row.classList.remove('substituted');
     
-    // Reset amounts
+    // Reset amounts to original with current scale
     const neededAmountElement = row.querySelector('.needed-amount');
     const originalAmount = parseFloat(neededAmountElement.dataset.original);
-    neededAmountElement.textContent = formatAmount(originalAmount);
+    const targetServings = parseInt(document.getElementById('target-servings').value);
+    const scaleFactor = targetServings / originalServings;
+    const scaledAmount = originalAmount * scaleFactor;
+    
+    neededAmountElement.textContent = formatAmount(scaledAmount);
+    neededAmountElement.removeAttribute('data-substitute-ratio');
     
     const haveAmountInput = row.querySelector('.have-amount');
-    haveAmountInput.value = originalAmount;
+    haveAmountInput.value = formatAmount(scaledAmount);
     
     updateIngredientStatus(index);
     updateSubstitutionsList();
+    updateOverallStats();
 }
 
 function updateSubstitutionsList() {
@@ -349,10 +470,11 @@ function updateScale() {
     
     document.getElementById('scale-display').textContent = scaleFactor.toFixed(1) + 'x';
     
-    // Update all needed amounts
+    // Update all needed amounts, considering substitutes
     document.querySelectorAll('.needed-amount').forEach(element => {
         const originalAmount = parseFloat(element.dataset.original);
-        const scaledAmount = originalAmount * scaleFactor;
+        const substituteRatio = parseFloat(element.dataset.substituteRatio) || 1;
+        const scaledAmount = originalAmount * scaleFactor * substituteRatio;
         element.textContent = formatAmount(scaledAmount);
     });
     
@@ -371,25 +493,23 @@ function updateIngredientStatus(index) {
     if (!row) return;
     
     const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-    const haveAmount = parseFloat(row.querySelector('.have-amount').value) || 0;
-    const statusBadge = row.querySelector('.status-badge');
+    const haveInput = row.querySelector('.have-amount');
     
     // Remove existing status classes but keep substituted if it exists
     const wasSubstituted = row.classList.contains('substituted');
     row.classList.remove('insufficient', 'partial');
     if (wasSubstituted) row.classList.add('substituted');
     
+    const haveAmount = parseFloat(haveInput.value) || 0;
+    
     if (haveAmount >= neededAmount) {
-        statusBadge.className = 'status-badge badge bg-success';
-        statusBadge.textContent = '✓ Enough';
+        haveInput.style.borderColor = '#198754';
     } else if (haveAmount > 0) {
-        statusBadge.className = 'status-badge badge bg-warning';
-        statusBadge.textContent = `⚠️ Need ${formatAmount(neededAmount - haveAmount)} more`;
         row.classList.add('partial');
+        haveInput.style.borderColor = '#ffc107';
     } else {
-        statusBadge.className = 'status-badge badge bg-danger';
-        statusBadge.textContent = '❌ Missing';
         row.classList.add('insufficient');
+        haveInput.style.borderColor = '#dc3545';
     }
 }
 
@@ -398,10 +518,17 @@ function updateOverallStats() {
     let available = 0, partial = 0, missing = 0;
     
     rows.forEach(row => {
-        const badge = row.querySelector('.status-badge');
-        if (badge.classList.contains('bg-success')) available++;
-        else if (badge.classList.contains('bg-warning')) partial++;
-        else if (badge.classList.contains('bg-danger')) missing++;
+        const haveInput = row.querySelector('.have-amount');
+        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        const haveAmount = parseFloat(haveInput.value) || 0;
+        
+        if (haveAmount >= neededAmount) {
+            available++;
+        } else if (haveAmount > 0) {
+            partial++;
+        } else {
+            missing++;
+        }
     });
     
     document.getElementById('available-count').textContent = available;
@@ -414,7 +541,7 @@ function updateOverallStats() {
     
     // Update recipe status
     const statusEl = document.getElementById('recipe-status');
-    if (progressPercent === 100) {
+    if (missing === 0 && partial === 0) {
         statusEl.className = 'badge bg-success';
         statusEl.textContent = 'Ready to Cook!';
     } else if (progressPercent >= 75) {
@@ -434,18 +561,23 @@ function updateShoppingList() {
     
     document.querySelectorAll('[data-ingredient]').forEach(row => {
         const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        const haveAmount = parseFloat(row.querySelector('.have-amount').value) || 0;
+        const haveInput = row.querySelector('.have-amount');
         
-        if (haveAmount < neededAmount) {
-            const name = row.querySelector('.ingredient-name').textContent;
-            const needToBuy = neededAmount - haveAmount;
-            const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
-            items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
+        // Only add to shopping list if user specified they have less than needed
+        if (haveInput.value && haveInput.value.trim() !== '') {
+            const haveAmount = parseFloat(haveInput.value) || 0;
+            
+            if (haveAmount < neededAmount) {
+                const name = row.querySelector('.ingredient-name').textContent;
+                const needToBuy = neededAmount - haveAmount;
+                const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
+                items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
+            }
         }
     });
     
     if (items.length === 0) {
-        shoppingList.innerHTML = '<div class="text-muted">All ingredients available!</div>';
+        shoppingList.innerHTML = '<div class="text-muted">Enter ingredient amounts to generate shopping list</div>';
     } else {
         shoppingList.innerHTML = items.map(item => 
             `<div class="mb-1">• ${item}</div>`
@@ -461,6 +593,7 @@ function setAllAvailable() {
         input.value = neededAmount;
         updateIngredientStatus(index);
     });
+    checkForAutoAdjustment();
 }
 
 function setAllMissing() {
@@ -468,6 +601,7 @@ function setAllMissing() {
         input.value = 0;
         updateIngredientStatus(index);
     });
+    checkForAutoAdjustment();
 }
 
 function setHalfAmounts() {
@@ -477,6 +611,7 @@ function setHalfAmounts() {
         input.value = neededAmount / 2;
         updateIngredientStatus(index);
     });
+    checkForAutoAdjustment();
 }
 
 function formatAmount(amount) {
@@ -533,6 +668,70 @@ function copyShoppingList() {
 function savePreferences() {
     alert('Preferences saved! (This would save to your profile in a full app)');
 }
-</script>
 
-<%- include('parts/footer') %>
+// Add new function to apply maximum recipe adjustment
+function applyMaximumRecipe() {
+    const ingredients = document.querySelectorAll('[data-ingredient]');
+    let limitingRatio = 1.0;
+    let hasUserInputs = false;
+    
+    // Find the limiting ratio
+    ingredients.forEach(row => {
+        const haveInput = row.querySelector('.have-amount');
+        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        
+        if (haveInput.value && haveInput.value.trim() !== '') {
+            hasUserInputs = true;
+            const haveAmount = parseFloat(haveInput.value) || 0;
+            const ratio = haveAmount / neededAmount;
+            
+            if (ratio < limitingRatio) {
+                limitingRatio = ratio;
+            }
+        }
+    });
+    
+    if (!hasUserInputs) {
+        alert('Please enter ingredient amounts first');
+        return;
+    }
+    
+    // Adjust serving size to maximum possible
+    const maxServings = Math.floor(originalServings * limitingRatio);
+    if (maxServings > 0) {
+        document.getElementById('target-servings').value = maxServings;
+        updateScale();
+        
+        // Force update all statuses and adjusted amounts
+        updateAllStatuses();
+        checkForAutoAdjustment();
+        
+        // Show success message
+        const suggestion = document.getElementById('auto-adjust-suggestion');
+        if (suggestion) {
+            suggestion.remove();
+        }
+        const suggestionHtml = `
+            <div id="auto-adjust-suggestion" class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+                <strong>✅ Recipe adjusted!</strong> Maximum possible servings set to ${maxServings}.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
+        
+        // Auto-remove success message after 3 seconds
+        setTimeout(() => {
+            const msg = document.getElementById('auto-adjust-suggestion');
+            if (msg) msg.remove();
+        }, 3000);
+    } else {
+        alert('Not enough ingredients to make any servings.');
+    }
+}
+</script>
+        }, 3000);
+    } else {
+        alert('Not enough ingredients to make any servings.');
+    }
+}
+</script>
