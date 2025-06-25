@@ -513,6 +513,24 @@ app.get('/recipes/:id/edit', async (req, res) => {
       return res.status(404).render('error', { message: 'Recipe not found' });
     }
 
+    // Get the recipe ingredients with ingredient and unit names
+    const { data: ingredients, error: ingredientsError } = await req.supabase
+      .from('recipe_ingredients')
+      .select(`
+        *,
+        ingredient:ingredient_id(name),
+        unit:unit_id(name)
+      `)
+      .eq('recipe_id', req.params.id)
+      .order('id');
+
+    if (ingredientsError) {
+      console.error('Ingredients fetch error:', ingredientsError);
+      recipe.ingredients = [];
+    } else {
+      recipe.ingredients = ingredients || [];
+    }
+
     res.render('edit-recipe', { user: req.user, recipe: recipe });
   } catch (err) {
     console.error('Recipe edit view error:', err);
@@ -525,7 +543,7 @@ app.post('/recipes/:id', async (req, res) => {
   if (!req.user) return res.status(401).send('Unauthorized');
 
   try {
-    const { title, instructions, servings, prep_time, cook_time } = req.body;
+    const { title, instructions, servings, prep_time, cook_time, ingredients } = req.body;
     
     if (!title || !instructions || !servings) {
       return res.status(400).render('edit-recipe', {
@@ -554,6 +572,80 @@ app.post('/recipes/:id', async (req, res) => {
     if (recipeError) throw recipeError;
     
     console.log('Recipe updated with ID:', recipe.id);
+
+    // Delete existing ingredients
+    const { error: deleteError } = await req.supabase
+      .from('recipe_ingredients')
+      .delete()
+      .eq('recipe_id', req.params.id);
+
+    if (deleteError) {
+      console.error('Error deleting existing ingredients:', deleteError);
+    }
+
+    // Process and insert updated ingredients if they exist
+    if (ingredients && Array.isArray(ingredients)) {
+      const ingredientInserts = [];
+      
+      for (let index = 0; index < ingredients.length; index++) {
+        const ingredient = ingredients[index];
+        
+        if (ingredient.name && ingredient.amount && ingredient.amount.trim() !== '') {
+          console.log(`Processing ingredient ${index + 1}: ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`);
+          
+          // Find the ingredient_id from the ingredient name
+          const { data: ingredientRecord, error: ingredientError } = await req.supabase
+            .from('ingredient')
+            .select('id')
+            .eq('name', ingredient.name)
+            .single();
+          
+          if (ingredientError) {
+            console.warn(`Could not find ingredient "${ingredient.name}":`, ingredientError);
+          }
+          
+          // Find the unit_id from the unit name (if provided)
+          let unitRecord = null;
+          if (ingredient.unit && ingredient.unit.trim() !== '') {
+            const { data: unitData, error: unitError } = await req.supabase
+              .from('measurement_units')
+              .select('id')
+              .eq('name', ingredient.unit)
+              .single();
+            
+            if (unitError) {
+              console.warn(`Could not find unit "${ingredient.unit}":`, unitError);
+            } else {
+              unitRecord = unitData;
+            }
+          }
+          
+          ingredientInserts.push({
+            recipe_id: recipe.id,
+            name: ingredient.name,
+            amount: parseFloat(ingredient.amount),
+            ingredient_id: ingredientRecord ? ingredientRecord.id : null,
+            unit_id: unitRecord ? unitRecord.id : null
+          });
+        }
+      }
+
+      // Insert updated ingredients if any exist
+      if (ingredientInserts.length > 0) {
+        console.log('Inserting updated ingredients:', ingredientInserts);
+        
+        const { data: insertedIngredients, error: ingredientError } = await req.supabase
+          .from('recipe_ingredients')
+          .insert(ingredientInserts)
+          .select();
+
+        if (ingredientError) {
+          console.error('Ingredient insert error:', ingredientError);
+        } else {
+          console.log('Successfully updated ingredients:', insertedIngredients);
+        }
+      }
+    }
 
     // Redirect to the recipe detail page
     res.redirect(`/recipes/${recipe.id}`);
