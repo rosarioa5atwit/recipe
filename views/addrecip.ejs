@@ -68,9 +68,8 @@ let ingredientCount = 1;
 let ingredientsData = [];
 let unitsData = [];
 
-// Function to fetch ingredients (only once)
 async function fetchIngredients() {
-    if (ingredientsData.length > 0) return; // Don't fetch if already loaded
+    if (ingredientsData.length > 0) return; 
     
     try {
         console.log('Fetching ingredients from API...');
@@ -97,9 +96,8 @@ async function fetchIngredients() {
     }
 }
 
-// Function to fetch units (only once)
 async function fetchUnits() {
-    if (unitsData.length > 0) return; // Don't fetch if already loaded
+    if (unitsData.length > 0) return; 
     
     try {
         console.log('Fetching units from API...');
@@ -120,11 +118,9 @@ async function fetchUnits() {
     }
 }
 
-// Populate ingredient dropdowns (prevent refresh)
 function populateIngredientDropdowns() {
     const dropdowns = document.querySelectorAll('.ingredient-dropdown');
     dropdowns.forEach(dropdown => {
-        // Only populate if empty (prevent refresh)
         if (dropdown.children.length <= 1) {
             ingredientsData.forEach(ingredient => {
                 const option = document.createElement('option');
@@ -136,11 +132,9 @@ function populateIngredientDropdowns() {
     });
 }
 
-// Populate unit dropdowns (prevent refresh)
 function populateUnitDropdowns() {
     const dropdowns = document.querySelectorAll('.unit-dropdown');
     dropdowns.forEach(dropdown => {
-        // Only populate if empty (prevent refresh)
         if (dropdown.children.length <= 1) {
             unitsData.forEach(unit => {
                 const option = document.createElement('option');
@@ -152,7 +146,6 @@ function populateUnitDropdowns() {
     });
 }
 
-// Add ingredient row
 document.getElementById('add-ingredient').addEventListener('click', function() {
     const container = document.getElementById('ingredients-container');
     const div = document.createElement('div');
@@ -179,11 +172,9 @@ document.getElementById('add-ingredient').addEventListener('click', function() {
     `;
     container.appendChild(div);
     
-    // Populate only the new dropdowns
     const newIngredientDropdown = div.querySelector('.ingredient-dropdown');
     const newUnitDropdown = div.querySelector('.unit-dropdown');
     
-    // Populate new ingredient dropdown
     if (ingredientsData.length > 0) {
         ingredientsData.forEach(ingredient => {
             const option = document.createElement('option');
@@ -193,7 +184,6 @@ document.getElementById('add-ingredient').addEventListener('click', function() {
         });
     }
     
-    // Populate new unit dropdown
     if (unitsData.length > 0) {
         unitsData.forEach(unit => {
             const option = document.createElement('option');
@@ -206,25 +196,21 @@ document.getElementById('add-ingredient').addEventListener('click', function() {
     ingredientCount++;
 });
 
-// Remove ingredient row
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('remove-ingredient')) {
         e.target.closest('.ingredient-row').remove();
     }
 });
 
-// Add form submission debugging
 document.getElementById('recipeForm').addEventListener('submit', function(e) {
     console.log('*** FORM SUBMISSION DEBUG ***');
     
-    // Log all form data
     const formData = new FormData(this);
     console.log('Form data entries:');
     for (let [key, value] of formData.entries()) {
         console.log(`${key}: "${value}"`);
     }
     
-    // Check ingredients specifically
     const ingredients = [];
     const ingredientRows = document.querySelectorAll('.ingredient-row');
     
@@ -247,10 +233,8 @@ document.getElementById('recipeForm').addEventListener('submit', function(e) {
     
     console.log('*** END FORM SUBMISSION DEBUG ***');
     
-    // Don't prevent submission, let it continue
 });
 
-// Load data when page loads (only once)
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Page loaded, fetching data...');
     fetchIngredients();

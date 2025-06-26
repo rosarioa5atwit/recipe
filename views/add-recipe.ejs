@@ -68,7 +68,6 @@ let ingredientCount = 1;
 let ingredientsData = [];
 let unitsData = [];
 
-// Function to fetch ingredients
 async function fetchIngredients() {
     try {
         console.log('Starting to fetch ingredients...');
@@ -188,7 +187,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Load data when page loads
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Page loaded, fetching data...');
     fetchIngredients();

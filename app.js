@@ -6,30 +6,26 @@ const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = process.env.PORT || 3050;
 
-// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
-// 2. Supabase Client ======================================
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
 
-// 3. Authentication Middleware ============================
 app.use(async (req, res, next) => {
   try {
     if (req.cookies['sb-access-token']) {
-      // Verify the token and get user data
       const { data: { user }, error } = await supabase.auth.getUser(
         req.cookies['sb-access-token']
       );
       
       if (!error && user) {
-        req.user = user;        // Create authenticated Supabase client
+        req.user = user;
         req.supabase = createClient(
           process.env.SUPABASE_URL,
           process.env.SUPABASE_KEY,
@@ -50,20 +46,15 @@ app.use(async (req, res, next) => {
   }
 });
 
-// 4. Routes ===============================================
-
-// Add debugging middleware to see all requests
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
-// Very simple test route - put this first
 app.get('/hello', (req, res) => {
   res.send('Hello World! Server is working.');
 });
 
-// Simple test route to verify routing works
 app.get('/test', (req, res) => {
   console.log('Basic test endpoint hit!');
   res.send(`
@@ -74,7 +65,6 @@ app.get('/test', (req, res) => {
   `);
 });
 
-// Test endpoint to verify Supabase connectivity
 app.get('/test/supabase', async (req, res) => {
   console.log('Supabase test endpoint hit!');
   
@@ -91,13 +81,11 @@ app.get('/test/supabase', async (req, res) => {
       `);
     }
 
-    // Test ingredients table
     const { data: ingredients, error: ingredientsError } = await req.supabase
       .from('ingredient')
       .select('*')
       .limit(5);
 
-    // Test measurement_units table
     const { data: units, error: unitsError } = await req.supabase
       .from('measurement_units')
       .select('*')
@@ -138,7 +126,6 @@ app.get('/test/supabase', async (req, res) => {
   }
 });
 
-// Test endpoint to display a recipe from database
 app.get('/test/recipe', async (req, res) => {
   console.log('Recipe test endpoint hit!');
   
@@ -150,7 +137,6 @@ app.get('/test/recipe', async (req, res) => {
       `);
     }
 
-    // Get the first recipe from the database for this user
     const { data: recipe, error } = await req.supabase
       .from('recipes')
       .select('*')
@@ -167,7 +153,6 @@ app.get('/test/recipe', async (req, res) => {
       `);
     }
 
-    // Console output
     console.log('*** RECIPE FROM DATABASE ***');
     console.log('Recipe ID:', recipe.id);
     console.log('Title:', recipe.title);
@@ -179,7 +164,6 @@ app.get('/test/recipe', async (req, res) => {
     console.log('User ID:', recipe.user_id);
     console.log('*** END RECIPE ***');
 
-    // HTML output
     const html = `
       <h2>Recipe Test - Database Recipe Display</h2>
       
@@ -214,7 +198,6 @@ app.get('/test/recipe', async (req, res) => {
   }
 });
 
-// API endpoint to get ingredients
 app.get('/api/ingredients', async (req, res) => {
   console.log('API ingredients endpoint hit');
   console.log('User authenticated:', req.user ? 'Yes' : 'No');
@@ -236,7 +219,6 @@ app.get('/api/ingredients', async (req, res) => {
   }
 });
 
-// API endpoint to get units
 app.get('/api/units', async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -255,12 +237,10 @@ app.get('/api/units', async (req, res) => {
   }
 });
 
-// Home Page
 app.get('/', (req, res) => {
   res.render('index', { user: req.user });
 });
 
-// Authentication Routes
 app.get('/login', (req, res) => {
   if (req.user) return res.redirect('/recipes');
   res.render('login', { error: null });
@@ -333,7 +313,6 @@ app.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
-// Recipe Routes
 app.get('/recipes', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
@@ -365,7 +344,6 @@ app.get('/recipes/:id', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
   try {
-    // Get the recipe
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .select('*')
@@ -375,7 +353,8 @@ app.get('/recipes/:id', async (req, res) => {
 
     if (recipeError || !recipe) {
       return res.status(404).render('error', { message: 'Recipe not found' });
-    }    // Get the recipe ingredients with ingredient and unit names
+    }
+
     const { data: ingredients, error: ingredientsError } = await req.supabase
       .from('recipe_ingredients')
       .select(`
@@ -388,11 +367,12 @@ app.get('/recipes/:id', async (req, res) => {
 
     if (ingredientsError) {
       console.error('Ingredients fetch error:', ingredientsError);
-      // Continue without ingredients rather than failing
       recipe.ingredients = [];
     } else {
       recipe.ingredients = ingredients || [];
-    }    console.log('*** RECIPE WITH INGREDIENTS ***');
+    }
+
+    console.log('*** RECIPE WITH INGREDIENTS ***');
     console.log('Recipe:', recipe.title);
     console.log('Ingredients count:', recipe.ingredients.length);
     recipe.ingredients.forEach((ing, index) => {
@@ -400,14 +380,15 @@ app.get('/recipes/:id', async (req, res) => {
       const ingredientName = ing.ingredient ? ing.ingredient.name : ing.name;
       console.log(`  ${index + 1}. ${ing.amount} ${unitName} ${ingredientName}`);
     });
-    console.log('*** END RECIPE ***');    res.render('recipe-detail', { user: req.user, recipe: recipe });
+    console.log('*** END RECIPE ***');
+
+    res.render('recipe-detail', { user: req.user, recipe: recipe });
   } catch (err) {
     console.error('Recipe view error:', err);
     res.status(500).render('error', { message: 'Failed to load recipe' });
   }
 });
 
-// Recipe Adjust Route
 app.get('/recipes/:id/adjust', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
@@ -416,7 +397,6 @@ app.get('/recipes/:id/adjust', async (req, res) => {
     console.log('Recipe ID:', req.params.id);
     console.log('User ID:', req.user.id);
     
-    // Get the recipe
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .select('*')
@@ -429,7 +409,8 @@ app.get('/recipes/:id/adjust', async (req, res) => {
       return res.status(404).render('error', { message: 'Recipe not found' });
     }
 
-    console.log('Recipe found:', recipe.title);    // Get the recipe ingredients with ingredient and unit names
+    console.log('Recipe found:', recipe.title);
+
     const { data: ingredients, error: ingredientsError } = await req.supabase
       .from('recipe_ingredients')
       .select(`
@@ -446,14 +427,12 @@ app.get('/recipes/:id/adjust', async (req, res) => {
     } else {
       recipe.ingredients = ingredients || [];
       
-      // For each ingredient, fetch its substitutions from the database
       for (let i = 0; i < recipe.ingredients.length; i++) {
         const ingredient = recipe.ingredients[i];
         
         if (ingredient.ingredient_id) {
           console.log(`Looking for substitutions for ingredient_id: ${ingredient.ingredient_id}, name: ${ingredient.name}`);
           
-          // Get substitution items directly for this ingredient
           const { data: substitutionItems, error: subItemError } = await req.supabase
             .from('substitution_items')
             .select(`
@@ -496,12 +475,10 @@ app.get('/recipes/:id/adjust', async (req, res) => {
   }
 });
 
-// Edit Recipe Route
 app.get('/recipes/:id/edit', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
   try {
-    // Get the recipe
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .select('*')
@@ -513,7 +490,6 @@ app.get('/recipes/:id/edit', async (req, res) => {
       return res.status(404).render('error', { message: 'Recipe not found' });
     }
 
-    // Get the recipe ingredients with ingredient and unit names
     const { data: ingredients, error: ingredientsError } = await req.supabase
       .from('recipe_ingredients')
       .select(`
@@ -538,7 +514,6 @@ app.get('/recipes/:id/edit', async (req, res) => {
   }
 });
 
-// Update Recipe Route
 app.post('/recipes/:id', async (req, res) => {
   if (!req.user) return res.status(401).send('Unauthorized');
 
@@ -553,7 +528,6 @@ app.post('/recipes/:id', async (req, res) => {
       });
     }
 
-    // Update the recipe
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .update({
@@ -573,7 +547,6 @@ app.post('/recipes/:id', async (req, res) => {
     
     console.log('Recipe updated with ID:', recipe.id);
 
-    // Delete existing ingredients
     const { error: deleteError } = await req.supabase
       .from('recipe_ingredients')
       .delete()
@@ -583,7 +556,6 @@ app.post('/recipes/:id', async (req, res) => {
       console.error('Error deleting existing ingredients:', deleteError);
     }
 
-    // Process and insert updated ingredients if they exist
     if (ingredients && Array.isArray(ingredients)) {
       const ingredientInserts = [];
       
@@ -593,7 +565,6 @@ app.post('/recipes/:id', async (req, res) => {
         if (ingredient.name && ingredient.amount && ingredient.amount.trim() !== '') {
           console.log(`Processing ingredient ${index + 1}: ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`);
           
-          // Find the ingredient_id from the ingredient name
           const { data: ingredientRecord, error: ingredientError } = await req.supabase
             .from('ingredient')
             .select('id')
@@ -604,7 +575,6 @@ app.post('/recipes/:id', async (req, res) => {
             console.warn(`Could not find ingredient "${ingredient.name}":`, ingredientError);
           }
           
-          // Find the unit_id from the unit name (if provided)
           let unitRecord = null;
           if (ingredient.unit && ingredient.unit.trim() !== '') {
             const { data: unitData, error: unitError } = await req.supabase
@@ -630,7 +600,6 @@ app.post('/recipes/:id', async (req, res) => {
         }
       }
 
-      // Insert updated ingredients if any exist
       if (ingredientInserts.length > 0) {
         console.log('Inserting updated ingredients:', ingredientInserts);
         
@@ -647,7 +616,6 @@ app.post('/recipes/:id', async (req, res) => {
       }
     }
 
-    // Redirect to the recipe detail page
     res.redirect(`/recipes/${recipe.id}`);
   } catch (err) {
     console.error(`Update recipe error: ${err.message}`);
@@ -665,7 +633,6 @@ app.post('/recipes', async (req, res) => {
   try {
     const { title, instructions, servings, prep_time, cook_time, ingredients } = req.body;
     
-    // Debug logging
     console.log('*** RECIPE SUBMISSION RECEIVED ***');
     console.log('Title:', title);
     console.log('Servings:', servings);
@@ -693,7 +660,6 @@ app.post('/recipes', async (req, res) => {
       });
     }
 
-    // Create the recipe first
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .insert({
@@ -709,19 +675,17 @@ app.post('/recipes', async (req, res) => {
 
     if (recipeError) throw recipeError;
     
-    console.log('Recipe created with ID:', recipe.id);    // Process ingredients if they exist
+    console.log('Recipe created with ID:', recipe.id);
+
     if (ingredients && Array.isArray(ingredients)) {
       const ingredientInserts = [];
       
-      // Process ingredients sequentially to handle async operations
       for (let index = 0; index < ingredients.length; index++) {
         const ingredient = ingredients[index];
         
-        // Only add ingredients that have both amount and name
         if (ingredient.name && ingredient.amount && ingredient.amount.trim() !== '') {
           console.log(`Processing ingredient ${index + 1}: ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`);
           
-          // Find the ingredient_id from the ingredient name
           const { data: ingredientRecord, error: ingredientError } = await req.supabase
             .from('ingredient')
             .select('id')
@@ -732,7 +696,6 @@ app.post('/recipes', async (req, res) => {
             console.warn(`Could not find ingredient "${ingredient.name}":`, ingredientError);
           }
           
-          // Find the unit_id from the unit name (if provided)
           let unitRecord = null;
           if (ingredient.unit && ingredient.unit.trim() !== '') {
             const { data: unitData, error: unitError } = await req.supabase
@@ -760,7 +723,6 @@ app.post('/recipes', async (req, res) => {
         }
       }
 
-      // Insert ingredients if any exist
       if (ingredientInserts.length > 0) {
         console.log('Inserting ingredients:', ingredientInserts);
         
@@ -771,7 +733,6 @@ app.post('/recipes', async (req, res) => {
 
         if (ingredientError) {
           console.error('Ingredient insert error:', ingredientError);
-          // Don't fail the whole recipe, just log the error
           console.log('Recipe saved but ingredients failed to save');
         } else {
           console.log('Successfully inserted ingredients:', insertedIngredients);
@@ -783,7 +744,6 @@ app.post('/recipes', async (req, res) => {
       console.log('No ingredients array found or ingredients is not an array');
     }
 
-    // Redirect to the recipe detail page
     res.redirect(`/recipes/${recipe.id}`);
   } catch (err) {
     console.error(`Save recipe error: ${err.message}`);
@@ -794,7 +754,6 @@ app.post('/recipes', async (req, res) => {
   }
 });
 
-// Delete Recipe
 app.delete('/recipes/:id', async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -803,7 +762,7 @@ app.delete('/recipes/:id', async (req, res) => {
       .from('recipes')
       .delete()
       .eq('id', req.params.id)
-      .eq('user_id', req.user.id); // Ensure user can only delete their own recipes
+      .eq('user_id', req.user.id);
 
     if (error) {
       console.log('Recipe delete error:', error);
@@ -817,36 +776,30 @@ app.delete('/recipes/:id', async (req, res) => {
   }
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).render('404');
 });
 
-// 5. Server Startup ======================================
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log('Supabase connected to:', process.env.SUPABASE_URL);
 });
 
-// Live reload setup for development
 if (process.env.NODE_ENV !== 'production') {
   try {
     const livereload = require('livereload');
     const connectLivereload = require('connect-livereload');
     
-    // Create livereload server
     const liveReloadServer = livereload.createServer({
       exts: ['css', 'js', 'html', 'ejs'],
       port: 35729
     });
     
-    // Watch public and views directories
     liveReloadServer.watch([
       __dirname + '/public',
       __dirname + '/views'
     ]);
     
-    // Use livereload middleware
     app.use(connectLivereload());
     
     console.log('🔄 Live reload enabled on port 35729');

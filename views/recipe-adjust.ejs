@@ -192,23 +192,18 @@
              
 
 <script>
-let originalServings = 4; // Will be initialized from page data
+let originalServings = 4; 
 let currentIngredientIndex = 0;
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Get original servings from the page
     const targetServingsInput = document.getElementById('target-servings');
     if (targetServingsInput) {
         originalServings = parseInt(targetServingsInput.value) || 4;
     }
     
-    // Set up event listeners
     targetServingsInput.addEventListener('change', updateScale);
     
-    // Have amount inputs - set default to recipe amounts for initial display
     document.querySelectorAll('.have-amount').forEach((input, index) => {
-        // Set default to recipe amount initially
         const row = input.closest('[data-ingredient]');
         const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
         input.value = neededAmount;
@@ -225,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Substitute dropdown options
     document.querySelectorAll('.substitute-option').forEach(option => {
         option.addEventListener('click', function(e) {
             e.preventDefault();
@@ -238,7 +232,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Remove substitute options
     document.querySelectorAll('.remove-substitute').forEach(option => {
         option.addEventListener('click', function(e) {
             e.preventDefault();
@@ -252,13 +245,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.substitute-option').length, 'substitute options and',
                 document.querySelectorAll('.remove-substitute').length, 'remove options');
     
-    // Initialize with default values (assuming full amounts available)
     updateAllStatuses();
-    // Set initial adjusted amounts to show "can make full recipe"
     updateAdjustedAmounts(1.0, true);
 });
 
-// Check if we should auto-adjust recipe based on limiting ingredient
 function checkForAutoAdjustment() {
     const ingredients = document.querySelectorAll('[data-ingredient]');
     let limitingRatio = 1.0;
@@ -279,7 +269,6 @@ function checkForAutoAdjustment() {
         }
     });
     
-    // If user has provided inputs and limiting ratio is less than 1, suggest adjustment
     if (hasUserInputs && limitingRatio < 1.0) {
         const newServings = Math.floor(originalServings * limitingRatio);
         if (newServings > 0 && newServings !== parseInt(document.getElementById('target-servings').value)) {
@@ -287,7 +276,6 @@ function checkForAutoAdjustment() {
         }
     }
     
-    // Update adjusted amounts to show maximum possible recipe
     updateAdjustedAmounts(limitingRatio, hasUserInputs);
 }
 
@@ -325,7 +313,6 @@ function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
         const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
         
         if (!hasUserInputs) {
-            // Default state - show that full recipe can be made
             adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
             adjustedAmountDisplay.textContent = 'Can make full recipe';
             return;
@@ -339,21 +326,16 @@ function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
         
         const haveAmount = parseFloat(haveInput.value) || 0;
         
-        // Calculate the maximum amount that can be used for the recipe
-        // based on the most limiting ingredient
         const maxUsableAmount = Math.min(haveAmount, neededAmount * limitingRatio);
         const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
         
         if (limitingRatio >= 1.0) {
-            // Can make full recipe or more
             adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
             adjustedAmountDisplay.textContent = `Use ${formatAmount(neededAmount)} ${unit}`;
         } else if (limitingRatio > 0) {
-            // Can make partial recipe
             adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-warning';
             adjustedAmountDisplay.textContent = `Use ${formatAmount(maxUsableAmount)} ${unit}`;
         } else {
-            // Cannot make recipe
             adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
             adjustedAmountDisplay.textContent = 'Cannot use';
         }
@@ -369,40 +351,31 @@ function applySubstitute(index, substituteName, ratio) {
     const ingredientNameEl = row.querySelector('.ingredient-name');
     const originalName = ingredientNameEl.dataset.original || ingredientNameEl.textContent;
     
-    // Store original name if not already stored
     if (!ingredientNameEl.dataset.original) {
         ingredientNameEl.dataset.original = originalName;
     }
     
-    // Update the ingredient name to show substitution
     ingredientNameEl.innerHTML = `${substituteName} <small class="text-muted">(was ${originalName})</small>`;
     
-    // Show substitute info
     const substituteInfo = row.querySelector('.substitute-info');
     substituteInfo.innerHTML = `<small class="text-info">🔄 Using ${substituteName} instead of ${originalName} (${ratio}:1 ratio)</small>`;
     substituteInfo.style.display = 'block';
     
-    // Mark row as substituted
     row.classList.add('substituted');
     
-    // Get current scale factor
     const targetServings = parseInt(document.getElementById('target-servings').value);
     const scaleFactor = targetServings / originalServings;
     
-    // Adjust the needed amount based on ratio and current scale
     const neededAmountElement = row.querySelector('.needed-amount');
     const originalAmount = parseFloat(neededAmountElement.dataset.original);
     const adjustedAmount = originalAmount * ratio * scaleFactor;
     neededAmountElement.textContent = formatAmount(adjustedAmount);
     
-    // Store the substitute ratio for future scale updates
     neededAmountElement.dataset.substituteRatio = ratio;
     
-    // Update the "have" amount to match the adjusted amount (assuming they'll get the substitute)
     const haveAmountInput = row.querySelector('.have-amount');
     haveAmountInput.value = formatAmount(adjustedAmount);
     
-    // Update status
     updateIngredientStatus(index);
     updateSubstitutionsList();
     updateOverallStats();
@@ -418,17 +391,14 @@ function removeSubstitute(index) {
     const originalName = ingredientNameEl.dataset.original;
     
     if (originalName) {
-        // Reset to original ingredient name
         ingredientNameEl.textContent = originalName;
         ingredientNameEl.removeAttribute('data-original');
     }
     
-    // Hide substitute info
     const substituteInfo = row.querySelector('.substitute-info');
     substituteInfo.style.display = 'none';
     row.classList.remove('substituted');
     
-    // Reset amounts to original with current scale
     const neededAmountElement = row.querySelector('.needed-amount');
     const originalAmount = parseFloat(neededAmountElement.dataset.original);
     const targetServings = parseInt(document.getElementById('target-servings').value);
@@ -470,7 +440,6 @@ function updateScale() {
     
     document.getElementById('scale-display').textContent = scaleFactor.toFixed(1) + 'x';
     
-    // Update all needed amounts, considering substitutes
     document.querySelectorAll('.needed-amount').forEach(element => {
         const originalAmount = parseFloat(element.dataset.original);
         const substituteRatio = parseFloat(element.dataset.substituteRatio) || 1;
@@ -495,7 +464,6 @@ function updateIngredientStatus(index) {
     const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
     const haveInput = row.querySelector('.have-amount');
     
-    // Remove existing status classes but keep substituted if it exists
     const wasSubstituted = row.classList.contains('substituted');
     row.classList.remove('insufficient', 'partial');
     if (wasSubstituted) row.classList.add('substituted');
@@ -539,7 +507,6 @@ function updateOverallStats() {
     const progressPercent = total > 0 ? Math.round((available / total) * 100) : 100;
     document.getElementById('progress-bar').style.width = progressPercent + '%';
     
-    // Update recipe status
     const statusEl = document.getElementById('recipe-status');
     if (missing === 0 && partial === 0) {
         statusEl.className = 'badge bg-success';
@@ -585,7 +552,6 @@ function updateShoppingList() {
     }
 }
 
-// Quick action functions
 function setAllAvailable() {
     document.querySelectorAll('.have-amount').forEach((input, index) => {
         const row = input.closest('[data-ingredient]');
@@ -669,13 +635,11 @@ function savePreferences() {
     alert('Preferences saved! (This would save to your profile in a full app)');
 }
 
-// Add new function to apply maximum recipe adjustment
 function applyMaximumRecipe() {
     const ingredients = document.querySelectorAll('[data-ingredient]');
     let limitingRatio = 1.0;
     let hasUserInputs = false;
     
-    // Find the limiting ratio
     ingredients.forEach(row => {
         const haveInput = row.querySelector('.have-amount');
         const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
@@ -696,17 +660,14 @@ function applyMaximumRecipe() {
         return;
     }
     
-    // Adjust serving size to maximum possible
     const maxServings = Math.floor(originalServings * limitingRatio);
     if (maxServings > 0) {
         document.getElementById('target-servings').value = maxServings;
         updateScale();
         
-        // Force update all statuses and adjusted amounts
         updateAllStatuses();
         checkForAutoAdjustment();
         
-        // Show success message
         const suggestion = document.getElementById('auto-adjust-suggestion');
         if (suggestion) {
             suggestion.remove();
@@ -719,7 +680,6 @@ function applyMaximumRecipe() {
         `;
         document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
         
-        // Auto-remove success message after 3 seconds
         setTimeout(() => {
             const msg = document.getElementById('auto-adjust-suggestion');
             if (msg) msg.remove();

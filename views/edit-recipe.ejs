@@ -28,7 +28,6 @@
             </div>
         </div>
 
-        <!-- Ingredients Section -->
         <div class="mb-4">
             <h4>Ingredients</h4>
             <div id="ingredients-container">
@@ -89,7 +88,6 @@
 </div>
 
 <script>
-// Same ingredient management JavaScript as in addrecip.ejs
 let ingredientCount = <%= recipe.ingredients ? recipe.ingredients.length : 1 %>;
 
 document.getElementById('add-ingredient').addEventListener('click', function() {
@@ -224,7 +222,6 @@ function showSuggestions(input, suggestions) {
     input.parentElement.appendChild(dropdown);
 }
 
-// Close dropdowns when clicking outside
 document.addEventListener('click', function(e) {
     if (!e.target.classList.contains('ingredient-input') && !e.target.classList.contains('unit-input')) {
         document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
@@ -233,7 +230,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Initialize autocomplete on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadAutocompleteData();
 });

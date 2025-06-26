@@ -167,7 +167,6 @@
     cursor: pointer;
 }
 
-/* Form Styles */
 .form-group {
     margin-bottom: 20px;
 }
@@ -194,7 +193,6 @@
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-/* Button Styles */
 .btn {
     display: inline-block;
     padding: 10px 20px;
@@ -272,7 +270,6 @@
     color: white;
 }
 
-/* Container and Layout */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -306,7 +303,6 @@
     padding: 20px;
 }
 
-/* Alerts */
 .alert {
     padding: 15px;
     margin-bottom: 20px;
@@ -337,7 +333,6 @@
     border-radius: 4px;
     border: 1px solid #ddd;
 }
-/* Utility Classes */
 .text-center {
     text-align: center;
 }
