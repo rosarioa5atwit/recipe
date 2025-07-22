@@ -498,6 +498,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function findBestDisplayUnit(amount, originalUnit, unitCategory) {
+        console.log(`🔍 Finding best unit for ${amount} ${originalUnit} in category ${unitCategory}`);
+        
+        // First, normalize the original unit
+        const normalizeUnit = (unit) => {
+            const unitMap = {
+                'cup': 'cups',
+                'cups': 'cups',
+                'tbsp': 'tbsp',
+                'tsp': 'tsp',
+                'pc': 'pcs',
+                'pcs': 'pcs',
+                'piece': 'pcs',
+                'item': 'pcs',
+                'clove': 'cloves',
+                'cloves': 'cloves',
+                'slice': 'slices',
+                'slices': 'slices'
+            };
+            return unitMap[unit.toLowerCase()] || unit.toLowerCase();
+        };
+
+        const normalizedOriginal = normalizeUnit(originalUnit);
+        
+        // For same unit conversions or simple amounts, just return the original
+        if (amount >= 0.25 && amount <= 100) {
+            // Check if the amount is already reasonable in the original unit
+            const isWholeNumber = Math.abs(amount - Math.round(amount)) < 0.001;
+            const isCommonFraction = [0.125, 0.25, 0.33, 0.5, 0.67, 0.75].some(frac => 
+                Math.abs(amount - frac) < 0.02
+            );
+            
+            if (isWholeNumber || isCommonFraction) {
+                console.log(`✅ Keeping original unit: ${formatAmount(amount)} ${normalizedOriginal}`);
+                return { amount, unit: normalizedOriginal };
+            }
+        }
+
         // Get the unit category conversion table
         const conversions = {
             volume: {
@@ -531,26 +568,26 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         const categoryTable = conversions[unitCategory];
-        if (!categoryTable) return { amount, unit: originalUnit };
+        if (!categoryTable || !categoryTable[normalizedOriginal]) {
+            console.log(`❌ Unit '${originalUnit}' not found in ${unitCategory} category, keeping original`);
+            return { amount, unit: normalizedOriginal };
+        }
 
-        // Convert amount to base unit (ml for volume, g for weight, pcs for count)
-        const baseAmount = amount * (categoryTable[originalUnit] || 1);
+        // Convert amount to base unit
+        const baseAmount = amount * categoryTable[normalizedOriginal];
         
-        let bestUnit = originalUnit;
+        let bestUnit = normalizedOriginal;
         let bestAmount = amount;
-        let bestScore = Math.abs(amount - Math.round(amount)) + 0.5; // Start with penalty for original
+        let bestScore = Math.abs(amount - Math.round(amount)) + 0.1; // Small penalty for original
 
-        console.log(`🔍 Finding best unit for ${amount} ${originalUnit} (${baseAmount} base units)`);
+        console.log(`  Base amount: ${baseAmount}`);
 
         // Test each unit in the category
         Object.keys(categoryTable).forEach(unit => {
             const convertedAmount = baseAmount / categoryTable[unit];
             
-            console.log(`  Testing ${unit}: ${convertedAmount}`);
-            
             // Skip if too small (less than 0.05) or too large (more than 1000)
             if (convertedAmount < 0.05 || convertedAmount > 1000) {
-                console.log(`    ❌ Skipped - out of range`);
                 return;
             }
             
@@ -564,33 +601,25 @@ document.addEventListener('DOMContentLoaded', function() {
             let isFraction = false;
             fractions.forEach(frac => {
                 if (Math.abs(decimal - frac) < 0.02) {
-                    score = Math.min(score, 0.05); // Much better than decimals
+                    score = Math.min(score, 0.05);
                     isFraction = true;
                 }
             });
             
             // Special bonus for exact whole numbers
             if (Math.abs(convertedAmount - Math.round(convertedAmount)) < 0.001) {
-                score = 0.01; // Best possible score
-                console.log(`    ✅ Exact whole number!`);
+                score = 0.01;
             }
             
             // Prefer units that result in amounts between 0.25 and 50
             if (convertedAmount >= 0.25 && convertedAmount <= 50) {
-                score *= 0.7; // Good range bonus
+                score *= 0.7;
             } else if (convertedAmount >= 0.1 && convertedAmount <= 100) {
-                score *= 0.9; // Acceptable range
+                score *= 0.9;
             }
             
-            // Small penalty for very small fractions
-            if (convertedAmount < 0.25 && !isFraction) {
-                score += 0.2;
-            }
-            
-            console.log(`    Score: ${score.toFixed(4)} (current best: ${bestScore.toFixed(4)})`);
-            
-            // If this is better than current best
-            if (score < bestScore) {
+            // If this is significantly better than current best
+            if (score < bestScore - 0.05) { // Require significant improvement
                 bestScore = score;
                 bestAmount = convertedAmount;
                 bestUnit = unit;
@@ -598,41 +627,123 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        console.log(`🎯 Final best display unit for ${amount} ${originalUnit}: ${formatAmount(bestAmount)} ${bestUnit}`);
+        console.log(`🎯 Final: ${formatAmount(bestAmount)} ${bestUnit}`);
         return { amount: bestAmount, unit: bestUnit };
     }
 
-    // Add a manual conversion test function for debugging
-    window.testConversion = function(amount, from, to) {
-        console.log(`🧪 Testing conversion: ${amount} ${from} → ${to}`);
-        convertUnits(amount, from, to).then(result => {
-            console.log(`✅ Test result: ${amount} ${from} = ${result} ${to}`);
-            alert(`${amount} ${from} = ${result} ${to}`);
-        });
-    };
-
-    function showAutoAdjustSuggestion(suggestedServings, ratio) {
-        const suggestion = document.getElementById('auto-adjust-suggestion');
-        if (suggestion) suggestion.remove();
+    async function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
+        console.log(`🔧 Updating adjusted amounts - ratio: ${limitingRatio}, hasInputs: ${hasUserInputs}`);
+        const ingredients = document.querySelectorAll('[data-ingredient]');
         
-        const suggestionHtml = `
-            <div id="auto-adjust-suggestion" class="alert alert-info alert-dismissible fade show mt-2" role="alert">
-                <strong>💡 Suggestion:</strong> Based on your available ingredients, you could make ${suggestedServings} servings instead. 
-                <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="applyAutoAdjustment(${suggestedServings})">
-                    Adjust Recipe
-                </button>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
+        for (let index = 0; index < ingredients.length; index++) {
+            const row = ingredients[index];
+            const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
+            const haveInput = row.querySelector('.have-amount');
+            const haveUnitSelect = row.querySelector('.have-unit');
+            const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+            const originalUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent?.trim() || '';
+            
+            console.log(`  Ingredient ${index}: needed=${neededAmount} ${originalUnit}`);
+            
+            if (!hasUserInputs) {
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
+                adjustedAmountDisplay.textContent = 'Can make full recipe';
+                continue;
+            }
+            
+            if (!haveInput.value || haveInput.value.trim() === '') {
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-secondary';
+                adjustedAmountDisplay.textContent = 'Enter amount above';
+                continue;
+            }
+            
+            const haveAmount = parseFloat(haveInput.value) || 0;
+            const haveUnit = haveUnitSelect ? haveUnitSelect.value : '';
+            
+            let convertedHaveAmount = haveAmount;
+            
+            if (haveUnit !== originalUnit && haveUnit && originalUnit) {
+                convertedHaveAmount = await convertUnits(haveAmount, haveUnit, originalUnit);
+            }
+            
+            // Calculate the actual amount to use
+            let amountToUse;
+            if (limitingRatio >= 1.0 && convertedHaveAmount >= neededAmount) {
+                amountToUse = neededAmount;
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
+                adjustedAmountDisplay.textContent = `Use ${formatAmount(amountToUse)} ${originalUnit}`;
+            } else if (limitingRatio > 0) {
+                amountToUse = neededAmount * limitingRatio;
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-warning';
+                adjustedAmountDisplay.textContent = `Use ${formatAmount(amountToUse)} ${originalUnit}`;
+            } else {
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
+                adjustedAmountDisplay.textContent = 'Cannot use';
+            }
+        }
         
-        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
+        updateAdjustedRecipeTable();
     }
 
-    function applyAutoAdjustment(suggestedServings) {
-        document.getElementById('target-servings').value = suggestedServings;
-        updateScale();
-        const suggestion = document.getElementById('auto-adjust-suggestion');
-        if (suggestion) suggestion.remove();
+    function updateAdjustedRecipeTable() {
+        const targetServings = parseInt(document.getElementById('target-servings').value);
+        const scaleFactor = targetServings / originalServings;
+        document.getElementById('adjusted-servings').textContent = targetServings;
+        document.getElementById('adjusted-scale-factor').textContent = scaleFactor.toFixed(1) + 'x';
+
+        document.querySelectorAll('[data-ingredient]').forEach((row, index) => {
+            const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
+            const summaryEl = document.getElementById(`adjusted-amount-summary-${index}`);
+            
+            // Update ingredient name to show substitute if applicable
+            const ingredientNameCell = document.querySelector(`#adjusted-recipe-table tr:nth-child(${index + 1}) td:first-child`);
+            if (ingredientNameCell) {
+                const originalName = row.querySelector('.ingredient-name').textContent;
+                
+                if (activeSubstitutions[index]) {
+                    // Show only substitute name
+                    ingredientNameCell.innerHTML = `<span class="text-warning fw-bold">${activeSubstitutions[index].name}</span>`;
+                } else {
+                    // Show original name
+                    ingredientNameCell.textContent = originalName;
+                }
+            }
+            
+            if (summaryEl && adjustedAmountDisplay) {
+                const adjustedText = adjustedAmountDisplay.textContent;
+                
+                if (adjustedText.includes('Use ')) {
+                    const match = adjustedText.match(/Use\s+([^\s]+)\s+(.+)/);
+                    if (match) {
+                        summaryEl.textContent = match[1];
+                        const unitEl = summaryEl.nextElementSibling;
+                        if (unitEl) {
+                            unitEl.textContent = match[2];
+                        }
+                    }
+                } else if (adjustedText === 'Can make full recipe') {
+                    const neededAmountEl = row.querySelector('.needed-amount');
+                    const originalAmount = parseFloat(neededAmountEl.textContent);
+                    const originalUnit = neededAmountEl.nextElementSibling?.textContent?.trim() || '';
+                    
+                    // Show scaled amount in best display unit
+                    const scaledAmount = originalAmount * scaleFactor;
+                    const unitCategory = getUnitCategory(originalUnit);
+                    const bestDisplay = findBestDisplayUnit(scaledAmount, originalUnit, unitCategory);
+                    
+                    summaryEl.textContent = formatAmount(bestDisplay.amount);
+                    const unitEl = summaryEl.nextElementSibling;
+                    if (unitEl) {
+                        unitEl.textContent = bestDisplay.unit;
+                    }
+                } else if (adjustedText === 'Cannot use') {
+                    summaryEl.textContent = '0';
+                } else {
+                    const neededAmountEl = row.querySelector('.needed-amount');
+                    summaryEl.textContent = neededAmountEl.textContent;
+                }
+            }
+        });
     }
 
     function applySubstitution(event) {
@@ -692,9 +803,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (Object.keys(activeSubstitutions).length === 0) {
             substitutionsList.innerHTML = '<div class="text-muted">No substitutions made</div>';
         } else {
-            substitutionsList.innerHTML = Object.entries(activeSubstitutions).map(([index, sub]) => 
-                `<div class="mb-1 small text-info">${sub.name}</div>`
-            ).join('');
+            substitutionsList.innerHTML = Object.entries(activeSubstitutions).map(([index, sub]) => {
+                const row = document.querySelector(`[data-ingredient="${index}"]`);
+                const originalName = row ? row.querySelector('.ingredient-name').textContent : 'Unknown';
+                return `<div class="mb-1 small">
+                    <span class="text-muted">${originalName} →</span> 
+                    <span class="text-warning fw-bold">${sub.name}</span>
+                </div>`;
+            }).join('');
         }
     }
 
@@ -710,117 +826,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (countUnits.includes(normalizedUnit)) return 'count';
         
         return 'volume'; // Default fallback
-    }
-
-    async function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
-        console.log(`🔧 Updating adjusted amounts - ratio: ${limitingRatio}, hasInputs: ${hasUserInputs}`);
-        const ingredients = document.querySelectorAll('[data-ingredient]');
-        
-        for (let index = 0; index < ingredients.length; index++) {
-            const row = ingredients[index];
-            const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
-            const haveInput = row.querySelector('.have-amount');
-            const haveUnitSelect = row.querySelector('.have-unit');
-            const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-            const originalUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent?.trim() || '';
-            
-            console.log(`  Ingredient ${index}: needed=${neededAmount} ${originalUnit}`);
-            
-            if (!hasUserInputs) {
-                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
-                adjustedAmountDisplay.textContent = 'Can make full recipe';
-                continue;
-            }
-            
-            if (!haveInput.value || haveInput.value.trim() === '') {
-                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-secondary';
-                adjustedAmountDisplay.textContent = 'Enter amount above';
-                continue;
-            }
-            
-            const haveAmount = parseFloat(haveInput.value) || 0;
-            const haveUnit = haveUnitSelect ? haveUnitSelect.value : '';
-            
-            console.log(`    Have: ${haveAmount} ${haveUnit}`);
-            
-            let convertedHaveAmount = haveAmount;
-            
-            if (haveUnit !== originalUnit && haveUnit && originalUnit) {
-                convertedHaveAmount = await convertUnits(haveAmount, haveUnit, originalUnit);
-                console.log(`    Converted: ${convertedHaveAmount} ${originalUnit}`);
-            }
-            
-            const maxUsableAmount = Math.min(convertedHaveAmount, neededAmount * limitingRatio);
-            console.log(`    Max usable: ${maxUsableAmount}`);
-            
-            // Find the best display unit for the amount we'll actually use
-            const unitCategory = getUnitCategory(originalUnit);
-            const bestDisplay = findBestDisplayUnit(maxUsableAmount, originalUnit, unitCategory);
-            
-            if (limitingRatio >= 1.0 && convertedHaveAmount >= neededAmount) {
-                const neededDisplay = findBestDisplayUnit(neededAmount, originalUnit, unitCategory);
-                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
-                adjustedAmountDisplay.textContent = `Use ${formatAmount(neededDisplay.amount)} ${neededDisplay.unit}`;
-                console.log(`    ✅ Sufficient: Use ${formatAmount(neededDisplay.amount)} ${neededDisplay.unit}`);
-            } else if (limitingRatio > 0) {
-                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-warning';
-                adjustedAmountDisplay.textContent = `Use ${formatAmount(bestDisplay.amount)} ${bestDisplay.unit}`;
-                console.log(`    ⚠️ Partial: Use ${formatAmount(bestDisplay.amount)} ${bestDisplay.unit}`);
-            } else {
-                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
-                adjustedAmountDisplay.textContent = 'Cannot use';
-                console.log(`    ❌ Cannot use`);
-            }
-        }
-        
-        updateAdjustedRecipeTable();
-    }
-
-    function updateAdjustedRecipeTable() {
-        const targetServings = parseInt(document.getElementById('target-servings').value);
-        const scaleFactor = targetServings / originalServings;
-        document.getElementById('adjusted-servings').textContent = targetServings;
-        document.getElementById('adjusted-scale-factor').textContent = scaleFactor.toFixed(1) + 'x';
-
-        document.querySelectorAll('[data-ingredient]').forEach((row, index) => {
-            const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
-            const summaryEl = document.getElementById(`adjusted-amount-summary-${index}`);
-            
-            if (summaryEl && adjustedAmountDisplay) {
-                const adjustedText = adjustedAmountDisplay.textContent;
-                
-                if (adjustedText.includes('Use ')) {
-                    const match = adjustedText.match(/Use\s+([^\s]+)\s+(.+)/);
-                    if (match) {
-                        summaryEl.textContent = match[1];
-                        const unitEl = summaryEl.nextElementSibling;
-                        if (unitEl) {
-                            unitEl.textContent = match[2];
-                        }
-                    }
-                } else if (adjustedText === 'Can make full recipe') {
-                    const neededAmountEl = row.querySelector('.needed-amount');
-                    const originalAmount = parseFloat(neededAmountEl.textContent);
-                    const originalUnit = neededAmountEl.nextElementSibling?.textContent?.trim() || '';
-                    
-                    // Show scaled amount in best display unit
-                    const scaledAmount = originalAmount * scaleFactor;
-                    const unitCategory = getUnitCategory(originalUnit);
-                    const bestDisplay = findBestDisplayUnit(scaledAmount, originalUnit, unitCategory);
-                    
-                    summaryEl.textContent = formatAmount(bestDisplay.amount);
-                    const unitEl = summaryEl.nextElementSibling;
-                    if (unitEl) {
-                        unitEl.textContent = bestDisplay.unit;
-                    }
-                } else if (adjustedText === 'Cannot use') {
-                    summaryEl.textContent = '0';
-                } else {
-                    const neededAmountEl = row.querySelector('.needed-amount');
-                    summaryEl.textContent = neededAmountEl.textContent;
-                }
-            }
-        });
     }
 
     function updateScale() {
@@ -846,6 +851,32 @@ document.addEventListener('DOMContentLoaded', function() {
             await updateIngredientStatus(index);
         }
     }
+
+    function showAutoAdjustSuggestion(suggestedServings, ratio) {
+        const suggestion = document.getElementById('auto-adjust-suggestion');
+        if (suggestion) suggestion.remove();
+        
+        const suggestionHtml = `
+            <div id="auto-adjust-suggestion" class="alert alert-info alert-dismissible fade show mt-2" role="alert">
+                <strong>💡 Suggestion:</strong> Based on your available ingredients, you could make ${suggestedServings} servings instead. 
+                <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="applyAutoAdjustment(${suggestedServings})">
+                    Adjust Recipe
+                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
+    }
+
+    // Add a manual conversion test function for debugging
+    window.testConversion = function(amount, from, to) {
+        console.log(`🧪 Testing conversion: ${amount} ${from} → ${to}`);
+        convertUnits(amount, from, to).then(result => {
+            console.log(`✅ Test result: ${amount} ${from} = ${result} ${to}`);
+            alert(`${amount} ${from} = ${result} ${to}`);
+        });
+    };
 });
 
 // Make these functions available globally for HTML onclick handlers
