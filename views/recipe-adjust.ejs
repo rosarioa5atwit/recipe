@@ -89,35 +89,44 @@
                                             </td>
                                             <td>
                                                 <% if (ingredient.substitutions && ingredient.substitutions.length > 0) { %>
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
-                                                                data-bs-toggle="dropdown" aria-expanded="false">
-                                                            Substitute
+                                                    <div class="custom-dropdown position-relative">
+                                                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" 
+                                                                data-dropdown-toggle="dropdownSubstitute<%= index %>">
+                                                            <i class="fas fa-exchange-alt me-1"></i>Substitute
                                                         </button>
-                                                        <ul class="dropdown-menu shadow-sm" style="min-width: 200px;">
-                                                            <li><h6 class="dropdown-header text-primary">
+                                                        <div class="dropdown-menu custom-dropdown-menu" 
+                                                             id="dropdownSubstitute<%= index %>" 
+                                                             style="min-width: 250px; display: none;">
+                                                            <h6 class="dropdown-header text-primary">
                                                                 <i class="fas fa-star me-1"></i>Available Substitutes
-                                                            </h6></li>
+                                                            </h6>
+                                                            <hr class="dropdown-divider">
                                                             <% ingredient.substitutions.forEach((sub, subIdx) => { %>
-                                                                <li>
-                                                                    <a class="dropdown-item substitute-option" href="#" 
-                                                                       data-ingredient-index="<%= index %>" 
-                                                                       data-substitute="<%= sub.name %>" 
-                                                                       data-ratio="<%= sub.ratio || 1 %>">
-                                                                        <i class="fas fa-arrow-right me-2 text-muted"></i><%= sub.name %>
-                                                                    </a>
-                                                                </li>
-                                                            <% }); %>
-                                                            <li>
-                                                                <a class="dropdown-item remove-substitute text-danger" href="#" 
-                                                                   data-ingredient-index="<%= index %>">
-                                                                    <i class="fas fa-times me-2"></i>Remove Substitute
+                                                                <a class="dropdown-item substitute-option d-flex justify-content-between align-items-center" 
+                                                                   href="#" 
+                                                                   data-ingredient-index="<%= index %>" 
+                                                                   data-substitute="<%= sub.name %>" 
+                                                                   data-ratio="<%= sub.ratio || 1 %>">
+                                                                    <span>
+                                                                        <i class="fas fa-arrow-right me-2 text-muted"></i>
+                                                                        <%= sub.name %>
+                                                                    </span>
+                                                                    <small class="text-muted">
+                                                                        <%= (sub.ratio || 1) %>:1
+                                                                    </small>
                                                                 </a>
-                                                            </li>
-                                                        </ul>
+                                                            <% }); %>
+                                                            <hr class="dropdown-divider">
+                                                            <a class="dropdown-item remove-substitute text-danger" href="#" 
+                                                               data-ingredient-index="<%= index %>">
+                                                                <i class="fas fa-times me-2"></i>Clear Substitute
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 <% } else { %>
-                                                    <span class="text-muted small">No substitutes available</span>
+                                                    <span class="text-muted small">
+                                                        <i class="fas fa-minus-circle me-1"></i>None available
+                                                    </span>
                                                 <% } %>
                                             </td>
                                         </tr>
@@ -196,6 +205,56 @@
     </div>
 </div>
 
+<style>
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background-color: #fff;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+    padding: 0.5rem 0;
+    margin: 0.125rem 0 0;
+}
+
+.custom-dropdown-menu .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.custom-dropdown-menu .dropdown-item:hover,
+.custom-dropdown-menu .dropdown-item:focus {
+    color: #1e2125;
+    background-color: #e9ecef;
+}
+
+.custom-dropdown-menu .dropdown-header {
+    display: block;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+
+.custom-dropdown-menu .dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(0,0,0,.15);
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize variables - use the original servings from the recipe
@@ -205,6 +264,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if recipe data is properly loaded
     const recipeData = <%- JSON.stringify(recipe) %>;
     console.log('Recipe data loaded:', recipeData);
+
+    // Initialize custom dropdowns instead of Bootstrap
+    console.log('Initializing custom dropdowns...');
+    initializeCustomDropdowns();
+
+    // Add debugging for substitutions
+    console.log('Checking ingredient substitutions:');
+    recipeData.ingredients?.forEach((ingredient, index) => {
+        console.log(`Ingredient ${index} (${ingredient.name}):`, {
+            hasSubstitutions: !!(ingredient.substitutions && ingredient.substitutions.length > 0),
+            substitutionsCount: ingredient.substitutions?.length || 0,
+            substitutions: ingredient.substitutions || 'undefined'
+        });
+    });
 
     // Setup event listeners
     document.querySelectorAll('.have-amount').forEach(input => {
@@ -226,7 +299,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial updates
     updateAllStatuses();
     updateAdjustedAmounts(1.0, false);
-    updateSubstitutionsList();
 
     // Main functions
     async function handleIngredientChange(event) {
@@ -717,11 +789,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function initializeCustomDropdowns() {
+        // Handle dropdown toggle clicks
+        document.querySelectorAll('[data-dropdown-toggle]').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetId = this.getAttribute('data-dropdown-toggle');
+                const dropdown = document.getElementById(targetId);
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.custom-dropdown-menu').forEach(menu => {
+                    if (menu.id !== targetId) {
+                        menu.style.display = 'none';
+                    }
+                });
+                
+                // Toggle this dropdown
+                if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.custom-dropdown-menu').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+        
+        console.log('Custom dropdowns initialized');
+    }
+
     function applySubstitution(event) {
         event.preventDefault();
         const index = event.target.getAttribute('data-ingredient-index');
         const substitute = event.target.getAttribute('data-substitute');
         const ratio = parseFloat(event.target.getAttribute('data-ratio')) || 1;
+        
+        console.log(`🔄 Applying substitution for ingredient ${index}: ${substitute} (ratio: ${ratio})`);
         
         // Update the row with substitution info
         const row = document.querySelector(`[data-ingredient="${index}"]`);
@@ -741,14 +853,28 @@ document.addEventListener('DOMContentLoaded', function() {
             const originalAmount = parseFloat(neededAmount.getAttribute('data-original'));
             neededAmount.setAttribute('data-substitute-ratio', ratio);
             
+            // Update dropdown button text to show active substitute
+            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
+            if (dropdownButton) {
+                dropdownButton.innerHTML = `<i class="fas fa-check-circle me-1 text-success"></i>${substitute}`;
+                dropdownButton.classList.remove('btn-outline-primary');
+                dropdownButton.classList.add('btn-outline-success');
+            }
+            
+            // Close the dropdown
+            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+            
             updateScale();
-            updateSubstitutionsList();
         }
     }
 
     function removeSubstitution(event) {
         event.preventDefault();
         const index = event.target.getAttribute('data-ingredient-index');
+        
+        console.log(`❌ Removing substitution for ingredient ${index}`);
         
         const row = document.querySelector(`[data-ingredient="${index}"]`);
         if (row) {
@@ -762,26 +888,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const neededAmount = row.querySelector('.needed-amount');
             neededAmount.removeAttribute('data-substitute-ratio');
             
+            // Reset dropdown button text
+            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
+            if (dropdownButton) {
+                dropdownButton.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>Substitute`;
+                dropdownButton.classList.remove('btn-outline-success');
+                dropdownButton.classList.add('btn-outline-primary');
+            }
+            
+            // Close the dropdown
+            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+            
             updateScale();
-            updateSubstitutionsList();
-        }
-    }
-
-    function updateSubstitutionsList() {
-        const substitutionsList = document.getElementById('substitutions-list');
-        if (!substitutionsList) return;
-        
-        if (Object.keys(activeSubstitutions).length === 0) {
-            substitutionsList.innerHTML = '<div class="text-muted">No substitutions made</div>';
-        } else {
-            substitutionsList.innerHTML = Object.entries(activeSubstitutions).map(([index, sub]) => {
-                const row = document.querySelector(`[data-ingredient="${index}"]`);
-                const originalName = row ? row.querySelector('.ingredient-name').textContent : 'Unknown';
-                return `<div class="mb-1 small">
-                    <span class="text-muted">${originalName} →</span> 
-                    <span class="text-warning fw-bold">${sub.name}</span>
-                </div>`;
-            }).join('');
         }
     }
 
