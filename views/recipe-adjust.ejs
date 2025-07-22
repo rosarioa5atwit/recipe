@@ -168,16 +168,6 @@
                                 </tr>
                             <% } %>
                         </tbody>
-                        <tfoot>
-                            <tr>
-                                <td class="fw-bold">Servings:</td>
-                                <td id="adjusted-servings" class="text-end"><%= recipe.base_servings %></td>
-                            </tr>
-                            <tr>
-                                <td class="fw-bold">Scale Factor:</td>
-                                <td id="adjusted-scale-factor" class="text-end">1.0x</td>
-                            </tr>
-                        </tfoot>
                     </table>
                     
                     <!-- Add Directions Section -->
@@ -200,28 +190,6 @@
                             <p class="text-muted">No directions available for this recipe.</p>
                         </div>
                     <% } %>
-                </div>
-            </div>
-
-            <div class="card mt-4">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0">🔄 Active Substitutions</h6>
-                </div>
-                <div class="card-body" style="max-height: 150px; overflow-y: auto;">
-                    <div id="substitutions-list">
-                        <div class="text-muted">No substitutions made</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mt-4">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0">🛒 Shopping List</h6>
-                </div>
-                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
-                    <div id="shopping-list">
-                        <div class="text-muted">No additional ingredients needed</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -697,12 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateAdjustedRecipeTable() {
-        // Use original servings since we removed the target servings input
-        const targetServings = originalServings;
-        const scaleFactor = 1.0; // Always 1.0 since we're not scaling
-        document.getElementById('adjusted-servings').textContent = targetServings;
-        document.getElementById('adjusted-scale-factor').textContent = scaleFactor.toFixed(1) + 'x';
-
+        // Remove servings and scale factor updates since they're no longer displayed
         document.querySelectorAll('[data-ingredient]').forEach((row, index) => {
             const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
             const summaryEl = document.getElementById(`adjusted-amount-summary-${index}`);
@@ -841,8 +804,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetServings = originalServings;
         const scaleFactor = 1.0;
         
-        // No need to update scale display since it's removed from HTML
-        
         document.querySelectorAll('.needed-amount').forEach(element => {
             const originalAmount = parseFloat(element.dataset.original);
             const substituteRatio = parseFloat(element.dataset.substituteRatio) || 1;
@@ -870,8 +831,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 });
-
-// Remove the applyAutoAdjustment function since we removed auto-adjustment
 </script>
 
 <%- include('parts/footer') %>
