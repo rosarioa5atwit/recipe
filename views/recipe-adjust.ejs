@@ -6,24 +6,11 @@
             <div class="card">
                 <div class="card-body">
                     <div class="row align-items-center">
-                        <div class="col-md-3">
+                        <div class="col-md-9">
                             <h5 class="mb-0"><%= recipe.title %></h5>
                             <small class="text-muted">Original: <%= recipe.base_servings %> servings</small>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Target Servings:</label>
-                            <input type="number" id="target-servings" class="form-control" 
-                                   value="<%= recipe.base_servings %>" min="1" max="50">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Scale:</label>
-                            <div class="h4 text-primary" id="scale-display">1.0x</div>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Status:</label>
-                            <div class="badge bg-success" id="recipe-status">Ready</div>
-                        </div>
-                        <div class="col-md-2">
                             <a href="/recipes/<%= recipe.id %>" class="btn btn-secondary w-100">
                                 ← Back to Recipe
                             </a>
@@ -195,41 +182,18 @@
                 </div>
             </div>
 
-            <div class="card mt-4">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0">🔄 Active Substitutions</h6>
-                </div>
-                <div class="card-body" style="max-height: 150px; overflow-y: auto;">
-                    <div id="substitutions-list">
-                        <div class="text-muted">No substitutions made</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mt-4">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0">🛒 Shopping List</h6>
-                </div>
-                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
-                    <div id="shopping-list">
-                        <div class="text-muted">No additional ingredients needed</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  
     </div>
 </div>
 
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize variables
-    let originalServings = parseInt(document.getElementById('target-servings').value) || 4;
+    // Initialize variables - use the original servings from the recipe
+    let originalServings = <%= recipe.base_servings %>;
     let activeSubstitutions = {};
 
-    // Setup event listeners
-    document.getElementById('target-servings').addEventListener('change', updateScale);
-    
+    // Setup event listeners - remove the target-servings listener since it no longer exists
     document.querySelectorAll('.have-amount').forEach(input => {
         input.addEventListener('input', handleIngredientChange);
     });
@@ -327,13 +291,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (ratio < limitingRatio) {
                     limitingRatio = ratio;
                 }
-            }
-        }
-        
-        if (hasUserInputs && limitingRatio < 1.0) {
-            const newServings = Math.floor(originalServings * limitingRatio);
-            if (newServings > 0 && newServings !== parseInt(document.getElementById('target-servings').value)) {
-                showAutoAdjustSuggestion(newServings, limitingRatio);
             }
         }
         
@@ -686,8 +643,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateAdjustedRecipeTable() {
-        const targetServings = parseInt(document.getElementById('target-servings').value);
-        const scaleFactor = targetServings / originalServings;
+        // Use original servings since we removed the target servings input
+        const targetServings = originalServings;
+        const scaleFactor = 1.0; // Always 1.0 since we're not scaling
         document.getElementById('adjusted-servings').textContent = targetServings;
         document.getElementById('adjusted-scale-factor').textContent = scaleFactor.toFixed(1) + 'x';
 
@@ -726,15 +684,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const originalAmount = parseFloat(neededAmountEl.textContent);
                     const originalUnit = neededAmountEl.nextElementSibling?.textContent?.trim() || '';
                     
-                    // Show scaled amount in best display unit
-                    const scaledAmount = originalAmount * scaleFactor;
-                    const unitCategory = getUnitCategory(originalUnit);
-                    const bestDisplay = findBestDisplayUnit(scaledAmount, originalUnit, unitCategory);
-                    
-                    summaryEl.textContent = formatAmount(bestDisplay.amount);
+                    // Show original amount since scale factor is 1.0
+                    summaryEl.textContent = formatAmount(originalAmount);
                     const unitEl = summaryEl.nextElementSibling;
                     if (unitEl) {
-                        unitEl.textContent = bestDisplay.unit;
+                        unitEl.textContent = originalUnit;
                     }
                 } else if (adjustedText === 'Cannot use') {
                     summaryEl.textContent = '0';
@@ -829,10 +783,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateScale() {
-        const targetServings = parseInt(document.getElementById('target-servings').value);
-        const scaleFactor = targetServings / originalServings;
+        // Since we removed target servings, always use original servings (scale factor = 1.0)
+        const targetServings = originalServings;
+        const scaleFactor = 1.0;
         
-        document.getElementById('scale-display').textContent = scaleFactor.toFixed(1) + 'x';
+        // No need to update scale display since it's removed from HTML
         
         document.querySelectorAll('.needed-amount').forEach(element => {
             const originalAmount = parseFloat(element.dataset.original);
@@ -852,23 +807,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showAutoAdjustSuggestion(suggestedServings, ratio) {
-        const suggestion = document.getElementById('auto-adjust-suggestion');
-        if (suggestion) suggestion.remove();
-        
-        const suggestionHtml = `
-            <div id="auto-adjust-suggestion" class="alert alert-info alert-dismissible fade show mt-2" role="alert">
-                <strong>💡 Suggestion:</strong> Based on your available ingredients, you could make ${suggestedServings} servings instead. 
-                <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="applyAutoAdjustment(${suggestedServings})">
-                    Adjust Recipe
-                </button>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        
-        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
-    }
-
     // Add a manual conversion test function for debugging
     window.testConversion = function(amount, from, to) {
         console.log(`🧪 Testing conversion: ${amount} ${from} → ${to}`);
@@ -879,16 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 
-// Make these functions available globally for HTML onclick handlers
-function applyAutoAdjustment(suggestedServings) {
-    document.getElementById('target-servings').value = suggestedServings;
-    // Trigger the change event to update everything
-    const event = new Event('change');
-    document.getElementById('target-servings').dispatchEvent(event);
-    
-    const suggestion = document.getElementById('auto-adjust-suggestion');
-    if (suggestion) suggestion.remove();
-}
+// Remove the applyAutoAdjustment function since we removed auto-adjustment
 </script>
 
 <%- include('parts/footer') %>
