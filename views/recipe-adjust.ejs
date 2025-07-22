@@ -179,21 +179,66 @@
                             </tr>
                         </tfoot>
                     </table>
+                    
+                    <!-- Add Directions Section -->
+                    <% if (recipe.instructions && recipe.instructions.trim().length > 0) { %>
+                        <div class="mt-4">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-list-ol me-2"></i>Directions
+                            </h6>
+                            <div class="directions-content">
+                                <div class="p-3 bg-light rounded">
+                                    <p class="mb-0" style="white-space: pre-line;"><%= recipe.instructions %></p>
+                                </div>
+                            </div>
+                        </div>
+                    <% } else { %>
+                        <div class="mt-4">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-list-ol me-2"></i>Directions
+                            </h6>
+                            <p class="text-muted">No directions available for this recipe.</p>
+                        </div>
+                    <% } %>
                 </div>
             </div>
 
-  
+            <div class="card mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">🔄 Active Substitutions</h6>
+                </div>
+                <div class="card-body" style="max-height: 150px; overflow-y: auto;">
+                    <div id="substitutions-list">
+                        <div class="text-muted">No substitutions made</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">🛒 Shopping List</h6>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    <div id="shopping-list">
+                        <div class="text-muted">No additional ingredients needed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize variables - use the original servings from the recipe
-    let originalServings = <%= recipe.base_servings %>;
+    let originalServings = <%- JSON.stringify(recipe.base_servings || 1) %>;
     let activeSubstitutions = {};
 
-    // Setup event listeners - remove the target-servings listener since it no longer exists
+    // Check if recipe data is properly loaded
+    const recipeData = <%- JSON.stringify(recipe) %>;
+    console.log('Recipe data loaded:', recipeData);
+
+    // Setup event listeners
     document.querySelectorAll('.have-amount').forEach(input => {
         input.addEventListener('input', handleIngredientChange);
     });
@@ -231,21 +276,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const row = document.querySelector(`[data-ingredient="${index}"]`);
         if (!row) return;
         
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        const neededAmountEl = row.querySelector('.needed-amount');
+        const neededAmount = parseFloat(neededAmountEl.textContent) || 0;
         const haveInput = row.querySelector('.have-amount');
         const haveUnitSelect = row.querySelector('.have-unit');
         
         const haveAmount = parseFloat(haveInput.value) || 0;
         const haveUnit = haveUnitSelect ? haveUnitSelect.value : '';
-        const neededUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
+        
+        // Safely get the needed unit
+        const neededUnitEl = neededAmountEl.nextElementSibling;
+        const neededUnit = neededUnitEl ? neededUnitEl.textContent.trim() : '';
         
         console.log(`📊 Ingredient ${index}: Need ${neededAmount} ${neededUnit}, Have ${haveAmount} ${haveUnit}`);
         
         let convertedHaveAmount = haveAmount;
-        if (haveUnit !== neededUnit.trim() && haveUnit && neededUnit.trim()) {
-            console.log(`🔄 Units differ - converting ${haveAmount} ${haveUnit} to ${neededUnit.trim()}`);
-            convertedHaveAmount = await convertUnits(haveAmount, haveUnit, neededUnit.trim());
-            console.log(`📈 Converted amount: ${convertedHaveAmount} ${neededUnit.trim()}`);
+        if (haveUnit !== neededUnit && haveUnit && neededUnit) {
+            console.log(`🔄 Units differ - converting ${haveAmount} ${haveUnit} to ${neededUnit}`);
+            try {
+                convertedHaveAmount = await convertUnits(haveAmount, haveUnit, neededUnit);
+                console.log(`📈 Converted amount: ${convertedHaveAmount} ${neededUnit}`);
+            } catch (error) {
+                console.error('Conversion failed:', error);
+                convertedHaveAmount = haveAmount; // Fallback to original amount
+            }
         } else {
             console.log(`✅ Units match or empty - no conversion needed`);
         }
