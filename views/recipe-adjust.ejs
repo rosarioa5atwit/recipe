@@ -206,6 +206,10 @@
 </div>
 
 <style>
+.custom-dropdown {
+    position: relative;
+}
+
 .custom-dropdown-menu {
     position: absolute;
     top: 100%;
@@ -217,6 +221,18 @@
     box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
     padding: 0.5rem 0;
     margin: 0.125rem 0 0;
+    min-width: 250px;
+}
+
+/* Ensure dropdown appears above table overflow */
+.table-responsive {
+    overflow: visible;
+}
+
+/* Alternative positioning for dropdowns that might go off-screen */
+.custom-dropdown-menu.dropdown-menu-end {
+    left: auto;
+    right: 0;
 }
 
 .custom-dropdown-menu .dropdown-item {
@@ -806,9 +822,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
-                // Toggle this dropdown
+                // Position dropdown relative to button
                 if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                    // Show dropdown
                     dropdown.style.display = 'block';
+                    
+                    // Check if dropdown goes off-screen and adjust position
+                    const rect = dropdown.getBoundingClientRect();
+                    const viewportWidth = window.innerWidth;
+                    
+                    // If dropdown goes off the right edge, align it to the right of the button
+                    if (rect.right > viewportWidth) {
+                        dropdown.classList.add('dropdown-menu-end');
+                    } else {
+                        dropdown.classList.remove('dropdown-menu-end');
+                    }
                 } else {
                     dropdown.style.display = 'none';
                 }
