@@ -1,7 +1,6 @@
 <%- include('parts/header', { title: 'Recipe Ingredient Manager - ' + recipe.title }) %>
 
 <div class="container-fluid">
-    <!-- Header with Recipe Info -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
@@ -36,7 +35,6 @@
     </div>
 
     <div class="row">
-        <!-- Main Ingredient Panel -->
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header bg-success text-white">
@@ -74,8 +72,8 @@
                                             </td>
                                             <td>
                                                 <input type="number" step="0.01" class="form-control form-control-sm have-amount" 
-                                                       value="<%= ingredient.amount %>" style="width: 80px;">
-                                            </td>
+                                                    value="<%= ingredient.amount %>" style="width: 80px;">
+                                                </td>
                                             <td>
                                                 <span class="adjusted-amount-display badge bg-info" id="adjusted-amount-<%= index %>">
                                                     Enter amounts above
@@ -99,7 +97,6 @@
                                                                     </a>
                                                                 </li>
                                                             <% }); %>
-                                                            <li><hr class="dropdown-divider"></li>
                                                             <li>
                                                                 <a class="dropdown-item remove-substitute text-danger" href="#" 
                                                                    data-ingredient-index="<%= index %>">
@@ -129,9 +126,7 @@
             </div>
         </div>
 
-        <!-- Side Panel -->
         <div class="col-lg-4">
-            <!-- Quick Stats -->
             <div class="card mb-3">
                 <div class="card-header bg-info text-white">
                     <h6 class="mb-0">📊 Quick Stats</h6>
@@ -157,14 +152,13 @@
                 </div>
             </div>
 
-            <!-- Shopping List -->
             <div class="card mb-3">
                 <div class="card-header bg-warning text-dark">
                     <h6 class="mb-0">🛒 Shopping List</h6>
                 </div>
                 <div class="card-body" style="max-height: 200px; overflow-y: auto;">
                     <div id="shopping-list">
-                        <div class="text-muted">All ingredients available!</div>
+                        <div class="text-muted">Enter ingredient amounts to generate shopping list</div>
                     </div>
                 </div>
                 <div class="card-footer">
@@ -174,7 +168,6 @@
                 </div>
             </div>
 
-            <!-- Substitutions -->
             <div class="card">
                 <div class="card-header bg-secondary text-white">
                     <h6 class="mb-0">🔄 Active Substitutions</h6>
@@ -208,6 +201,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
         input.value = neededAmount;
         input.placeholder = 'Enter amount you have';
+        
+        input.addEventListener('input', () => {
+            updateIngredientStatus(index);
+            checkForAutoAdjustment();
+        });
         
         input.addEventListener('change', () => {
             updateIngredientStatus(index);
@@ -299,9 +297,12 @@ function showAutoAdjustSuggestion(suggestedServings, ratio) {
 }
 
 function applyAutoAdjustment(suggestedServings) {
-    document.getElementById('target-servings').value = suggestedServings;
+    document.getElementById('target-servings0').value = suggestedServings;
     updateScale();
-    document.getElementById('auto-adjust-suggestion').remove();
+    const suggestion = document.getElementById('auto-adjust-suggestion');
+    if (suggestion) {
+        suggestion.remove();
+    }
 }
 
 function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
@@ -416,13 +417,102 @@ function removeSubstitute(index) {
     updateOverallStats();
 }
 
+function applyMaximumRecipe() {
+    const ingredients = document.querySelectorAll('[data-ingredient]');
+    let limitingRatio = 1.0;
+    let hasUserInputs = false;
+    
+    ingredients.forEach(row => {
+        const haveInput = row.querySelector('.have-amount');
+        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        
+        if (haveInput.value && haveInput.value.trim() !== '') {
+            hasUserInputs = true;
+            const haveAmount = parseFloat(haveInput.value) || 0;
+            const ratio = haveAmount / neededAmount;
+            
+            if (ratio < limitingRatio) {
+                limitingRatio = ratio;
+            }
+        }
+    });
+    
+    if (!hasUserInputs) {
+        alert('Please enter ingredient amounts first');
+        return;
+    }
+    
+    const maxServings = Math.floor(originalServings * limitingRatio);
+    if (maxServings > 0) {
+        document.getElementById('target-servings').value = maxServings;
+        updateScale();
+        
+        updateAllStatuses();
+        checkForAutoAdjustment();
+        
+        const suggestion = document.getElementById('auto-adjust-suggestion');
+        if (suggestion) {
+            suggestion.remove();
+        }
+        const suggestionHtml = `
+            <div id="auto-adjust-suggestion" class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+                <strong>✅ Recipe adjusted!</strong> Maximum possible servings set to ${maxServings}.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
+        
+        setTimeout(() => {
+            const msg = document.getElementById('auto-adjust-suggestion');
+            if (msg) msg.remove();
+        }, 3000);
+    } else {
+        alert('Not enough ingredients to make any servings.');
+    }
+}
+
+function updateShoppingList() {
+    const shoppingList = document.getElementById('shopping-list');
+    if (!shoppingList) return;
+    
+    const items = [];
+    
+    document.querySelectorAll('[data-ingredient]').forEach(row => {
+        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+        const haveInput = row.querySelector('.have-amount');
+        
+        if (haveInput.value && haveInput.value.trim() !== '') {
+            const haveAmount = parseFloat(haveInput.value) || 0;
+            
+            if (haveAmount < neededAmount) {
+                const name = row.querySelector('.ingredient-name').textContent;
+                const needToBuy = neededAmount - haveAmount;
+                const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
+                items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
+            }
+        }
+    });
+    
+    if (items.length === 0) {
+        shoppingList.innerHTML = '<div class="text-muted">Enter ingredient amounts to generate shopping list</div>';
+    } else {
+        shoppingList.innerHTML = items.map(item => 
+            `<div class="mb-1">• ${item}</div>`
+        ).join('');
+    }
+}
+
 function updateSubstitutionsList() {
     const substitutionsList = document.getElementById('substitutions-list');
+    if (!substitutionsList) return;
+    
     const substitutions = [];
     
     document.querySelectorAll('[data-ingredient].substituted').forEach(row => {
-        const substituteInfo = row.querySelector('.substitute-info small').textContent;
-        substitutions.push(substituteInfo);
+        const substituteInfo = row.querySelector('.substitute-info small');
+        if (substituteInfo) {
+            substitutions.push(substituteInfo.textContent);
+        }
     });
     
     if (substitutions.length === 0) {
@@ -522,36 +612,6 @@ function updateOverallStats() {
     updateShoppingList();
 }
 
-function updateShoppingList() {
-    const shoppingList = document.getElementById('shopping-list');
-    const items = [];
-    
-    document.querySelectorAll('[data-ingredient]').forEach(row => {
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        const haveInput = row.querySelector('.have-amount');
-        
-        // Only add to shopping list if user specified they have less than needed
-        if (haveInput.value && haveInput.value.trim() !== '') {
-            const haveAmount = parseFloat(haveInput.value) || 0;
-            
-            if (haveAmount < neededAmount) {
-                const name = row.querySelector('.ingredient-name').textContent;
-                const needToBuy = neededAmount - haveAmount;
-                const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
-                items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
-            }
-        }
-    });
-    
-    if (items.length === 0) {
-        shoppingList.innerHTML = '<div class="text-muted">Enter ingredient amounts to generate shopping list</div>';
-    } else {
-        shoppingList.innerHTML = items.map(item => 
-            `<div class="mb-1">• ${item}</div>`
-        ).join('');
-    }
-}
-
 function setAllAvailable() {
     document.querySelectorAll('.have-amount').forEach((input, index) => {
         const row = input.closest('[data-ingredient]');
@@ -604,94 +664,20 @@ function generateShoppingList() {
     });
     
     if (items.length === 0) {
-        alert('Great! You have all ingredients needed.');
-    } else {
-        const listText = 'Shopping List:\n\n' + items.map(item => `• ${item}`).join('\n');
-        alert(listText);
-    }
-}
-
-function copyShoppingList() {
-    const items = [];
-    document.querySelectorAll('[data-ingredient]').forEach(row => {
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        const haveAmount = parseFloat(row.querySelector('.have-amount').value) || 0;
-        
-        if (haveAmount < neededAmount) {
-            const name = row.querySelector('.ingredient-name').textContent;
-            const needToBuy = neededAmount - haveAmount;
-            const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
-            items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
-        }
-    });
-    
-    const listText = items.map(item => `• ${item}`).join('\n');
-    navigator.clipboard.writeText(listText).then(() => {
-        alert('Shopping list copied to clipboard!');
-    });
-}
-
-function savePreferences() {
-    alert('Preferences saved! (This would save to your profile in a full app)');
-}
-
-function applyMaximumRecipe() {
-    const ingredients = document.querySelectorAll('[data-ingredient]');
-    let limitingRatio = 1.0;
-    let hasUserInputs = false;
-    
-    ingredients.forEach(row => {
-        const haveInput = row.querySelector('.have-amount');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        
-        if (haveInput.value && haveInput.value.trim() !== '') {
-            hasUserInputs = true;
-            const haveAmount = parseFloat(haveInput.value) || 0;
-            const ratio = haveAmount / neededAmount;
-            
-            if (ratio < limitingRatio) {
-                limitingRatio = ratio;
-            }
-        }
-    });
-    
-    if (!hasUserInputs) {
-        alert('Please enter ingredient amounts first');
+        alert('No items found for the shopping list. Make sure ingredient amounts are entered.');
         return;
     }
     
-    const maxServings = Math.floor(originalServings * limitingRatio);
-    if (maxServings > 0) {
-        document.getElementById('target-servings').value = maxServings;
-        updateScale();
-        
-        updateAllStatuses();
-        checkForAutoAdjustment();
-        
-        const suggestion = document.getElementById('auto-adjust-suggestion');
-        if (suggestion) {
-            suggestion.remove();
-        }
-        const suggestionHtml = `
-            <div id="auto-adjust-suggestion" class="alert alert-success alert-dismissible fade show mt-2" role="alert">
-                <strong>✅ Recipe adjusted!</strong> Maximum possible servings set to ${maxServings}.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
-        
-        setTimeout(() => {
-            const msg = document.getElementById('auto-adjust-suggestion');
-            if (msg) msg.remove();
-        }, 3000);
-    } else {
-        alert('Not enough ingredients to make any servings.');
-    }
+    const shoppingListText = items.map(item => `• ${item}`).join('\n');
+    
+    navigator.clipboard.writeText(shoppingListText).then(() => {
+        alert('Shopping list copied to clipboard!');
+    }, err => {
+        console.error('Error copying shopping list: ', err);
+        alert('Failed to copy shopping list. Please try again.');
+    });
 }
+
 </script>
-        }, 3000);
-    } else {
-        alert('Not enough ingredients to make any servings.');
-    }
-}
-</script>
+
+<%- include('parts/footer') %>

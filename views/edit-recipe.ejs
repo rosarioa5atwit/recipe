@@ -112,7 +112,7 @@ document.getElementById('add-ingredient').addEventListener('click', function() {
     `;
     container.appendChild(newRow);
     ingredientCount++;
-    updateAutocomplete();
+    updateAutocomp();
 });
 
 document.addEventListener('click', function(e) {
@@ -120,12 +120,12 @@ document.addEventListener('click', function(e) {
         const ingredientRows = document.querySelectorAll('.ingredient-row');
         if (ingredientRows.length > 1) {
             e.target.closest('.ingredient-row').remove();
-            updateIngredientIndexes();
+            updateeIngredientIndexes();
         }
     }
 });
 
-function updateIngredientIndexes() {
+function updateeIngredientIndexes() {
     const rows = document.querySelectorAll('.ingredient-row');
     rows.forEach((row, index) => {
         const inputs = row.querySelectorAll('input');
@@ -154,13 +154,13 @@ async function loadAutocompleteData() {
             availableUnits = await unitsResponse.json();
         }
         
-        updateAutocomplete();
+        updateAutocomp();
     } catch (error) {
         console.error('Error loading autocomplete data:', error);
     }
 }
 
-function updateAutocomplete() {
+function updateAutocomp() {
     // Ingredient autocomplete
     document.querySelectorAll('.ingredient-input').forEach(input => {
         if (!input.hasAttribute('data-autocomplete-initialized')) {
