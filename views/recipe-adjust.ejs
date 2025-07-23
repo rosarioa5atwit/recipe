@@ -273,7 +273,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize variables - use the original servings from the recipe
+    // Initialize variables
     let originalServings = <%- JSON.stringify(recipe.base_servings || 1) %>;
     let activeSubstitutions = {};
 
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const recipeData = <%- JSON.stringify(recipe) %>;
     console.log('Recipe data loaded:', recipeData);
 
-    // Initialize custom dropdowns instead of Bootstrap
+    // Initialize custom dropdowns
     console.log('Initializing custom dropdowns...');
     initializeCustomDropdowns();
 

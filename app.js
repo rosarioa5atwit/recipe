@@ -438,7 +438,8 @@ app.get('/recipes/:id/adjust', async (req, res) => {
             .select(`
               id,
               ratio,
-              substitute_ingredient:substitute_ingredient_id(name),
+              units,
+              substitute_ingredient:substitute_ingredient_id(name)
             `)
             .eq('ingredient_id', ingredient.ingredient_id);
 
@@ -446,6 +447,7 @@ app.get('/recipes/:id/adjust', async (req, res) => {
             ingredient.substitutions = substitutionItems.map(item => ({
               name: item.substitute_ingredient.name,
               ratio: item.ratio || 1,
+              units: item.units || null
             }));
             console.log(`Found ${ingredient.substitutions.length} substitutions for ingredient: ${ingredient.name}`);
             console.log('Substitutions:', ingredient.substitutions);
