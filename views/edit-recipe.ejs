@@ -36,14 +36,14 @@
                         <div class="ingredient-row mb-2">
                             <div class="d-flex gap-2 align-items-center">
                                 <input type="number" step="0.01" class="form-control form-control-sm" name="ingredients[<%= index %>][amount]" 
-                                       placeholder="Amount" value="<%= ingredient.amount %>" required style="width: 100px;">
+                                       placeholder="Amount" value="<%= ingredient.amount %>" required style="width: 80px;">
                                 <input type="text" class="form-control form-control-sm unit-input" name="ingredients[<%= index %>][unit]" 
-                                       placeholder="Unit" value="<%= ingredient.unit ? ingredient.unit.name : '' %>" autocomplete="off" style="width: 100px;">
-                                <div class="position-relative flex-grow-1">
+                                       placeholder="Unit" value="<%= ingredient.unit ? ingredient.unit.name : '' %>" autocomplete="off" style="width: 80px;">
+                                <div class="position-relative" style="flex: 2;">
                                     <input type="text" class="form-control form-control-sm ingredient-input" name="ingredients[<%= index %>][name]" 
                                            placeholder="Ingredient name" value="<%= ingredient.name %>" required autocomplete="off">
                                 </div>
-                                <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 40px;">×</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 35px;">×</button>
                             </div>
                         </div>
                     <% }); %>
@@ -51,14 +51,14 @@
                     <div class="ingredient-row mb-2">
                         <div class="d-flex gap-2 align-items-center">
                             <input type="number" step="0.01" class="form-control form-control-sm" name="ingredients[0][amount]" 
-                                   placeholder="Amount" required style="width: 100px;">
+                                   placeholder="Amount" required style="width: 80px;">
                             <input type="text" class="form-control form-control-sm unit-input" name="ingredients[0][unit]" 
-                                   placeholder="Unit" autocomplete="off" style="width: 100px;">
-                            <div class="position-relative flex-grow-1">
+                                   placeholder="Unit" autocomplete="off" style="width: 80px;">
+                            <div class="position-relative" style="flex: 2;">
                                 <input type="text" class="form-control form-control-sm ingredient-input" name="ingredients[0][name]" 
                                        placeholder="Ingredient name" required autocomplete="off">
                             </div>
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 40px;">×</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 35px;">×</button>
                         </div>
                     </div>
                 <% } %>
@@ -88,14 +88,14 @@ document.getElementById('add-ingredient').addEventListener('click', function() {
     newRow.innerHTML = `
         <div class="d-flex gap-2 align-items-center">
             <input type="number" step="0.01" class="form-control form-control-sm" name="ingredients[${ingredientCount}][amount]" 
-                   placeholder="Amount" required style="width: 100px;">
+                   placeholder="Amount" required style="width: 80px;">
             <input type="text" class="form-control form-control-sm unit-input" name="ingredients[${ingredientCount}][unit]" 
-                   placeholder="Unit" autocomplete="off" style="width: 100px;">
-            <div class="position-relative flex-grow-1">
+                   placeholder="Unit" autocomplete="off" style="width: 80px;">
+            <div class="position-relative" style="flex: 2;">
                 <input type="text" class="form-control form-control-sm ingredient-input" name="ingredients[${ingredientCount}][name]" 
                        placeholder="Ingredient name" required autocomplete="off">
             </div>
-            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 40px;">×</button>
+            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 35px;">×</button>
         </div>
     `;
     container.appendChild(newRow);

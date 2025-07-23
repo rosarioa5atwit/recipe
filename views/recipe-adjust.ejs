@@ -708,13 +708,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const haveInput = row.querySelector('.have-amount');
             const haveUnitSelect = row.querySelector('.have-unit');
             const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-            const originalUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent?.trim() || '';
             
-            console.log(`  Ingredient ${index}: needed=${neededAmount} ${originalUnit}`);
+            // Get current unit (could be substitute unit)
+            const currentUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent?.trim() || '';
+            
+            console.log(`  Ingredient ${index}: needed=${neededAmount} ${currentUnit}`);
             
             if (!hasUserInputs) {
+                // Convert full recipe amount to best display unit
+                const unitCategory = getUnitCategory(currentUnit);
+                const bestDisplay = findBestDisplayUnit(neededAmount, currentUnit, unitCategory);
                 adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
-                adjustedAmountDisplay.textContent = 'Can make full recipe';
+                adjustedAmountDisplay.textContent = `Use ${formatAmount(bestDisplay.amount)} ${bestDisplay.unit}`;
                 continue;
             }
             
@@ -729,8 +734,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let convertedHaveAmount = haveAmount;
             
-            if (haveUnit !== originalUnit && haveUnit && originalUnit) {
-                convertedHaveAmount = await convertUnits(haveAmount, haveUnit, originalUnit);
+            if (haveUnit !== currentUnit && haveUnit && currentUnit) {
+                convertedHaveAmount = await convertUnits(haveAmount, haveUnit, currentUnit);
             }
             
             // Calculate the actual amount to use
@@ -738,15 +743,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (limitingRatio >= 1.0 && convertedHaveAmount >= neededAmount) {
                 amountToUse = neededAmount;
                 adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
-                adjustedAmountDisplay.textContent = `Use ${formatAmount(amountToUse)} ${originalUnit}`;
             } else if (limitingRatio > 0) {
                 amountToUse = neededAmount * limitingRatio;
                 adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-warning';
-                adjustedAmountDisplay.textContent = `Use ${formatAmount(amountToUse)} ${originalUnit}`;
             } else {
                 adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
                 adjustedAmountDisplay.textContent = 'Cannot use';
+                continue;
             }
+            
+            // Convert to best display unit
+            const unitCategory = getUnitCategory(currentUnit);
+            const bestDisplay = findBestDisplayUnit(amountToUse, currentUnit, unitCategory);
+            adjustedAmountDisplay.textContent = `Use ${formatAmount(bestDisplay.amount)} ${bestDisplay.unit}`;
         }
         
         updateAdjustedRecipeTable();
@@ -764,8 +773,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const originalName = row.querySelector('.ingredient-name').textContent;
                 
                 if (activeSubstitutions[index]) {
-                    // Show only substitute name
-                    ingredientNameCell.innerHTML = `<span class="text-warning fw-bold">${activeSubstitutions[index].name}</span>`;
+                    // Show substitute name with units if different
+                    let displayText = `<span class="text-warning fw-bold">${activeSubstitutions[index].name}</span>`;
+                    if (activeSubstitutions[index].units) {
+                        const unitDisplay = row.querySelector('.needed-amount').nextElementSibling;
+                        const originalUnit = unitDisplay?.getAttribute('data-original-unit') || '';
+                        if (activeSubstitutions[index].units !== originalUnit) {
+                            displayText += ` <small class="text-muted">(${activeSubstitutions[index].units})</small>`;
+                        }
+                    }
+                    ingredientNameCell.innerHTML = displayText;
                 } else {
                     // Show original name
                     ingredientNameCell.textContent = originalName;
@@ -785,21 +802,41 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 } else if (adjustedText === 'Can make full recipe') {
+                    // Convert to best display unit for full recipe
                     const neededAmountEl = row.querySelector('.needed-amount');
                     const originalAmount = parseFloat(neededAmountEl.textContent);
-                    const originalUnit = neededAmountEl.nextElementSibling?.textContent?.trim() || '';
+                    const currentUnit = neededAmountEl.nextElementSibling?.textContent?.trim() || '';
                     
-                    // Show original amount since scale factor is 1.0
-                    summaryEl.textContent = formatAmount(originalAmount);
+                    const unitCategory = getUnitCategory(currentUnit);
+                    const bestDisplay = findBestDisplayUnit(originalAmount, currentUnit, unitCategory);
+                    
+                    summaryEl.textContent = formatAmount(bestDisplay.amount);
                     const unitEl = summaryEl.nextElementSibling;
                     if (unitEl) {
-                        unitEl.textContent = originalUnit;
+                        unitEl.textContent = bestDisplay.unit;
                     }
                 } else if (adjustedText === 'Cannot use') {
                     summaryEl.textContent = '0';
+                    const unitEl = summaryEl.nextElementSibling;
+                    if (unitEl) {
+                        // Get current unit for consistency
+                        const currentUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent?.trim() || '';
+                        unitEl.textContent = currentUnit;
+                    }
                 } else {
+                    // Fallback to original display
                     const neededAmountEl = row.querySelector('.needed-amount');
-                    summaryEl.textContent = neededAmountEl.textContent;
+                    const originalAmount = parseFloat(neededAmountEl.textContent);
+                    const currentUnit = neededAmountEl.nextElementSibling?.textContent?.trim() || '';
+                    
+                    const unitCategory = getUnitCategory(currentUnit);
+                    const bestDisplay = findBestDisplayUnit(originalAmount, currentUnit, unitCategory);
+                    
+                    summaryEl.textContent = formatAmount(bestDisplay.amount);
+                    const unitEl = summaryEl.nextElementSibling;
+                    if (unitEl) {
+                        unitEl.textContent = bestDisplay.unit;
+                    }
                 }
             }
         });
