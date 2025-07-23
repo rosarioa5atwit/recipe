@@ -67,18 +67,18 @@
                                                         <% } else { %>
                                                             <option value="" selected>-</option>
                                                         <% } %>
-                                                        <option value="cups">cups</option>
-                                                        <option value="tbsp">tbsp</option>
-                                                        <option value="tsp">tsp</option>
-                                                        <option value="oz">oz</option>
-                                                        <option value="lb">lb</option>
-                                                        <option value="g">g</option>
-                                                        <option value="kg">kg</option>
-                                                        <option value="ml">ml</option>
-                                                        <option value="l">l</option>
-                                                        <option value="pcs">pcs</option>
-                                                        <option value="cloves">cloves</option>
-                                                        <option value="slices">slices</option>
+                                                        <option value="cup">cup</option>
+                                                        <option value="tablespoon">tbsp</option>
+                                                        <option value="teaspoon">tsp</option>
+                                                        <option value="ounce">oz</option>
+                                                        <option value="pound">lb</option>
+                                                        <option value="gram">g</option>
+                                                        <option value="kilogram">kg</option>
+                                                        <option value="milliliter">ml</option>
+                                                        <option value="liter">l</option>
+                                                        <option value="piece">pcs</option>
+                                                        <option value="clove">clove</option>
+                                                        <option value="pinch">pinch</option>
                                                     </select>
                                                 </div>
                                             </td>
@@ -446,21 +446,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function convertUnitsClientSide(amount, fromUnit, toUnit) {
-        // Normalize units
+        // Normalize units to match database names
         const normalizeUnit = (unit) => {
             const unitMap = {
-                'cup': 'cups',
-                'cups': 'cups',
-                'tbsp': 'tbsp',
-                'tsp': 'tsp',
-                'pc': 'pcs',
-                'pcs': 'pcs',
-                'piece': 'pcs',
-                'item': 'pcs',
-                'clove': 'cloves',
-                'cloves': 'cloves',
-                'slice': 'slices',
-                'slices': 'slices'
+                'cup': 'cup',
+                'cups': 'cup',
+                'tbsp': 'tablespoon',
+                'tablespoon': 'tablespoon',
+                'tsp': 'teaspoon',
+                'teaspoon': 'teaspoon',
+                'oz': 'ounce',
+                'ounce': 'ounce',
+                'lb': 'pound',
+                'pound': 'pound',
+                'g': 'gram',
+                'gram': 'gram',
+                'kg': 'kilogram',
+                'kilogram': 'kilogram',
+                'ml': 'milliliter',
+                'milliliter': 'milliliter',
+                'l': 'liter',
+                'liter': 'liter',
+                'pcs': 'piece',
+                'piece': 'piece',
+                'pieces': 'piece',
+                'clove': 'clove',
+                'cloves': 'clove',
+                'pinch': 'pinch',
+                'slice': 'slice',
+                'slices': 'slice'
             };
             return unitMap[unit.toLowerCase()] || unit.toLowerCase();
         };
@@ -472,38 +486,30 @@ document.addEventListener('DOMContentLoaded', function() {
             return amount;
         }
         
-        // Conversion tables (all conversions to base units)
+        // Conversion tables using database unit names (all conversions to base units)
         const conversions = {
             // Volume conversions (to ml)
             volume: {
-                'ml': 1,
-                'l': 1000,
-                'cups': 236.588,
-                'tbsp': 14.7868,
-                'tsp': 4.92892,
-                'fl oz': 29.5735,
-                'oz': 29.5735, // fluid oz
-                'qt': 946.353,
-                'pt': 473.176,
-                'gal': 3785.41
+                'milliliter': 1,
+                'liter': 1000,
+                'cup': 236.588,
+                'tablespoon': 14.7868,
+                'teaspoon': 4.92892,
+                'ounce': 29.5735, // fluid oz for volume
             },
             // Weight conversions (to grams)
             weight: {
-                'g': 1,
-                'kg': 1000,
-                'oz': 28.3495, // weight oz
-                'lb': 453.592,
-                'mg': 0.001
+                'gram': 1,
+                'kilogram': 1000,
+                'ounce': 28.3495, // weight oz
+                'pound': 453.592,
             },
-            // Count conversions (no conversion needed)
+            // Count conversions
             count: {
-                'pcs': 1,
-                'pieces': 1,
-                'items': 1,
-                'cloves': 1,
-                'slices': 1,
-                'whole': 1,
-                'each': 1
+                'piece': 1,
+                'clove': 1,
+                'pinch': 1,
+                'slice': 1
             }
         };
         
@@ -574,18 +580,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // First, normalize the original unit
         const normalizeUnit = (unit) => {
             const unitMap = {
-                'cup': 'cups',
-                'cups': 'cups',
-                'tbsp': 'tbsp',
-                'tsp': 'tsp',
-                'pc': 'pcs',
-                'pcs': 'pcs',
-                'piece': 'pcs',
-                'item': 'pcs',
-                'clove': 'cloves',
-                'cloves': 'cloves',
-                'slice': 'slices',
-                'slices': 'slices'
+                'cup': 'cup',
+                'cups': 'cup',
+                'tbsp': 'tablespoon',
+                'tsp': 'teaspoon',
+                'pc': 'piece',
+                'pcs': 'piece',
+                'piece': 'piece',
+                'item': 'piece',
+                'clove': 'clove',
+                'cloves': 'clove',
+                'slice': 'slice',
+                'slices': 'slice'
             };
             return unitMap[unit.toLowerCase()] || unit.toLowerCase();
         };
@@ -609,32 +615,24 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get the unit category conversion table
         const conversions = {
             volume: {
-                'ml': 1,
-                'l': 1000,
-                'cups': 236.588,
-                'tbsp': 14.7868,
-                'tsp': 4.92892,
-                'fl oz': 29.5735,
-                'oz': 29.5735,
-                'qt': 946.353,
-                'pt': 473.176,
-                'gal': 3785.41
+                'milliliter': 1,
+                'liter': 1000,
+                'cup': 236.588,
+                'tablespoon': 14.7868,
+                'teaspoon': 4.92892,
+                'ounce': 29.5735,
             },
             weight: {
-                'g': 1,
-                'kg': 1000,
-                'oz': 28.3495,
-                'lb': 453.592,
-                'mg': 0.001
+                'gram': 1,
+                'kilogram': 1000,
+                'ounce': 28.3495,
+                'pound': 453.592,
             },
             count: {
-                'pcs': 1,
-                'pieces': 1,
-                'items': 1,
-                'cloves': 1,
-                'slices': 1,
-                'whole': 1,
-                'each': 1
+                'piece': 1,
+                'clove': 1,
+                'pinch': 1,
+                'slice': 1
             }
         };
 
@@ -702,6 +700,163 @@ document.addEventListener('DOMContentLoaded', function() {
         return { amount: bestAmount, unit: bestUnit };
     }
 
+    function applySubstitution(event) {
+        event.preventDefault();
+        const index = parseInt(event.target.getAttribute('data-ingredient-index'));
+        const substitute = event.target.getAttribute('data-substitute');
+        const ratio = parseFloat(event.target.getAttribute('data-ratio')) || 1;
+        const substituteUnits = event.target.getAttribute('data-units') || '';
+        
+        console.log(`🔄 Applying substitution for ingredient ${index}: ${substitute} (ratio: ${ratio}, units: "${substituteUnits}")`);
+        
+        // Check for valid index
+        if (isNaN(index) || index < 0) {
+            console.error('Invalid ingredient index:', index);
+            return;
+        }
+        
+        // Validate that we have recipe data for this ingredient
+        if (!recipeData.ingredients || !recipeData.ingredients[index]) {
+            console.error('No recipe data found for ingredient index:', index);
+            return;
+        }
+        
+        // Update the row with substitution info
+        const row = document.querySelector(`[data-ingredient="${index}"]`);
+        if (row) {
+            row.classList.add('substituted');
+            
+            // Show substitute info
+            const substituteInfo = row.querySelector('.substitute-info');
+            if (substituteInfo) {
+                substituteInfo.style.display = 'block';
+                const originalName = recipeData.ingredients[index].name;
+                const originalAmount = recipeData.ingredients[index].amount;
+                const originalUnit = recipeData.ingredients[index].unit?.name || '';
+                
+                // Calculate substitute amount with validation
+                const substituteAmount = originalAmount * ratio;
+                const displayUnit = substituteUnits || originalUnit;
+                
+                if (isNaN(substituteAmount) || substituteAmount <= 0) {
+                    console.error('Invalid substitute amount calculated:', substituteAmount);
+                    return;
+                }
+                
+                substituteInfo.querySelector('small').innerHTML = 
+                    `Using <strong>${substitute}</strong>: ${formatAmount(substituteAmount)} ${displayUnit} instead of ${formatAmount(originalAmount)} ${originalUnit} ${originalName}`;
+            }
+            
+            // Store the substitution with units
+            activeSubstitutions[index] = {
+                name: substitute,
+                ratio: ratio,
+                units: substituteUnits,
+                originalName: recipeData.ingredients[index].name,
+                originalAmount: recipeData.ingredients[index].amount,
+                originalUnit: recipeData.ingredients[index].unit?.name || ''
+            };
+            
+            // Update the needed amount with substitution ratio
+            const neededAmount = row.querySelector('.needed-amount');
+            const originalAmount = parseFloat(neededAmount.getAttribute('data-original'));
+            
+            // Validate original amount
+            if (isNaN(originalAmount) || originalAmount <= 0) {
+                console.error('Invalid original amount:', originalAmount);
+                return;
+            }
+            
+            const newAmount = originalAmount * ratio;
+            
+            // Validate new amount
+            if (isNaN(newAmount) || newAmount < 0) {
+                console.error('Invalid new amount calculated:', newAmount);
+                return;
+            }
+            
+            neededAmount.textContent = formatAmount(newAmount);
+            
+            // Update unit display in "Recipe Needs" column - ALWAYS update if substituteUnits exists
+            const unitDisplay = neededAmount.nextElementSibling;
+            if (unitDisplay) {
+                // Store original unit if not already stored
+                if (!unitDisplay.hasAttribute('data-original-unit')) {
+                    unitDisplay.setAttribute('data-original-unit', unitDisplay.textContent.trim());
+                }
+                
+                // Use substitute units if available, otherwise keep original
+                if (substituteUnits && substituteUnits.trim() !== '') {
+                    unitDisplay.textContent = substituteUnits;
+                    console.log(`Updated Recipe Needs unit to: "${substituteUnits}"`);
+                } else {
+                    console.log(`No substitute units specified, keeping original: "${unitDisplay.textContent}"`);
+                }
+            }
+            
+            // Update the "Amount I Have" input and unit selector
+            const haveInput = row.querySelector('.have-amount');
+            const haveUnitSelect = row.querySelector('.have-unit');
+            
+            if (haveInput && haveUnitSelect) {
+                // Store original values if not already stored
+                if (!haveInput.hasAttribute('data-original-value')) {
+                    haveInput.setAttribute('data-original-value', haveInput.value);
+                }
+                if (!haveUnitSelect.hasAttribute('data-original-unit')) {
+                    haveUnitSelect.setAttribute('data-original-unit', haveUnitSelect.value);
+                }
+                
+                // Update the "Amount I Have" to use substitute amount - USE NUMERIC VALUE, NOT FORMATTED
+                haveInput.value = newAmount.toString();
+                console.log(`Set input value to numeric: ${newAmount}`);
+                
+                // Update the unit selector to show substitute units if available
+                if (substituteUnits && substituteUnits.trim() !== '') {
+                    // Check if the substitute unit already exists in the dropdown
+                    let optionExists = false;
+                    for (let option of haveUnitSelect.options) {
+                        if (option.value === substituteUnits) {
+                            option.selected = true;
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    
+                    // If substitute unit doesn't exist in dropdown, add it
+                    if (!optionExists) {
+                        const newOption = document.createElement('option');
+                        newOption.value = substituteUnits;
+                        newOption.textContent = substituteUnits;
+                        newOption.selected = true;
+                        haveUnitSelect.insertBefore(newOption, haveUnitSelect.firstChild);
+                    }
+                    console.log(`Updated Amount I Have unit to: "${substituteUnits}"`);
+                }
+            }
+            
+            // Update dropdown button to show active substitute
+            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
+            if (dropdownButton) {
+                let buttonText = `<i class="fas fa-check-circle me-1 text-success"></i>${substitute}`;
+                if (substituteUnits && substituteUnits.trim() !== '' && substituteUnits !== (activeSubstitutions[index].originalUnit || '')) {
+                    buttonText += ` <small>(${substituteUnits})</small>`;
+                }
+                dropdownButton.innerHTML = buttonText;
+                dropdownButton.classList.remove('btn-outline-primary');
+                dropdownButton.classList.add('btn-outline-success');
+            }
+            
+            // Close the dropdown
+            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+            
+            // Recalculate everything
+            handleIngredientChange({ target: row.querySelector('.have-amount') });
+        }
+    }
+
     async function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
         console.log(`🔧 Updating adjusted amounts - ratio: ${limitingRatio}, hasInputs: ${hasUserInputs}`);
         const ingredients = document.querySelectorAll('[data-ingredient]');
@@ -711,7 +866,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
             const haveInput = row.querySelector('.have-amount');
             const haveUnitSelect = row.querySelector('.have-unit');
-            const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+            const neededAmountEl = row.querySelector('.needed-amount');
+            const neededAmountText = neededAmountEl.textContent;
+            
+            // Parse the needed amount, handling both numeric and formatted values
+            let neededAmount;
+            if (neededAmountText.includes('½')) {
+                neededAmount = parseFloat(neededAmountText.replace('½', '.5'));
+            } else if (neededAmountText.includes('¼')) {
+                neededAmount = parseFloat(neededAmountText.replace('¼', '.25'));
+            } else if (neededAmountText.includes('¾')) {
+                neededAmount = parseFloat(neededAmountText.replace('¾', '.75'));
+            } else if (neededAmountText.includes('⅓')) {
+                neededAmount = parseFloat(neededAmountText.replace('⅓', '.333'));
+            } else if (neededAmountText.includes('⅔')) {
+                neededAmount = parseFloat(neededAmountText.replace('⅔', '.667'));
+            } else {
+                neededAmount = parseFloat(neededAmountText);
+            }
+            
+            // Validate needed amount
+            if (isNaN(neededAmount) || neededAmount < 0) {
+                console.error(`Invalid needed amount for ingredient ${index}:`, neededAmountText, 'parsed as:', neededAmount);
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
+                adjustedAmountDisplay.textContent = 'Error: Invalid amount';
+                continue;
+            }
             
             // Get current unit (could be substitute unit)
             const currentUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent?.trim() || '';
@@ -753,6 +933,14 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
                 adjustedAmountDisplay.textContent = 'Cannot use';
+                continue;
+            }
+            
+            // Validate amount to use
+            if (isNaN(amountToUse) || amountToUse < 0) {
+                console.error(`Invalid amount to use for ingredient ${index}:`, amountToUse);
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
+                adjustedAmountDisplay.textContent = 'Error: Invalid calculation';
                 continue;
             }
             
@@ -897,9 +1085,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getUnitCategory(unit) {
-        const volumeUnits = ['ml', 'l', 'cups', 'tbsp', 'tsp', 'fl oz', 'oz', 'qt', 'pt', 'gal'];
-        const weightUnits = ['g', 'kg', 'oz', 'lb', 'mg'];
-        const countUnits = ['pcs', 'pieces', 'items', 'cloves', 'slices', 'whole', 'each'];
+        const volumeUnits = ['milliliter', 'liter', 'cup', 'tablespoon', 'teaspoon', 'ounce'];
+        const weightUnits = ['gram', 'kilogram', 'ounce', 'pound'];
+        const countUnits = ['piece', 'clove', 'pinch', 'slice'];
 
         const normalizedUnit = unit.toLowerCase();
         
@@ -948,6 +1136,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Validate that we have recipe data for this ingredient
+        if (!recipeData.ingredients || !recipeData.ingredients[index]) {
+            console.error('No recipe data found for ingredient index:', index);
+            return;
+        }
+        
         // Update the row with substitution info
         const row = document.querySelector(`[data-ingredient="${index}"]`);
         if (row) {
@@ -961,9 +1155,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const originalAmount = recipeData.ingredients[index].amount;
                 const originalUnit = recipeData.ingredients[index].unit?.name || '';
                 
-                // Calculate substitute amount
+                // Calculate substitute amount with validation
                 const substituteAmount = originalAmount * ratio;
                 const displayUnit = substituteUnits || originalUnit;
+                
+                if (isNaN(substituteAmount) || substituteAmount <= 0) {
+                    console.error('Invalid substitute amount calculated:', substituteAmount);
+                    return;
+                }
                 
                 substituteInfo.querySelector('small').innerHTML = 
                     `Using <strong>${substitute}</strong>: ${formatAmount(substituteAmount)} ${displayUnit} instead of ${formatAmount(originalAmount)} ${originalUnit} ${originalName}`;
@@ -982,7 +1181,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update the needed amount with substitution ratio
             const neededAmount = row.querySelector('.needed-amount');
             const originalAmount = parseFloat(neededAmount.getAttribute('data-original'));
+            
+            // Validate original amount
+            if (isNaN(originalAmount) || originalAmount <= 0) {
+                console.error('Invalid original amount:', originalAmount);
+                return;
+            }
+            
             const newAmount = originalAmount * ratio;
+            
+            // Validate new amount
+            if (isNaN(newAmount) || newAmount < 0) {
+                console.error('Invalid new amount calculated:', newAmount);
+                return;
+            }
+            
             neededAmount.textContent = formatAmount(newAmount);
             
             // Update unit display in "Recipe Needs" column - ALWAYS update if substituteUnits exists
@@ -1015,8 +1228,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     haveUnitSelect.setAttribute('data-original-unit', haveUnitSelect.value);
                 }
                 
-                // Update the "Amount I Have" to use substitute amount
+                // Update the "Amount I Have" to use substitute amount - USE NUMERIC VALUE, NOT FORMATTED
                 haveInput.value = newAmount.toString();
+                console.log(`Set input value to numeric: ${newAmount}`);
                 
                 // Update the unit selector to show substitute units if available
                 if (substituteUnits && substituteUnits.trim() !== '') {
@@ -1133,7 +1347,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper function to check if a unit is one of the standard dropdown units
     function isStandardUnit(unit) {
-        const standardUnits = ['cups', 'tbsp', 'tsp', 'oz', 'lb', 'g', 'kg', 'ml', 'l', 'pcs', 'cloves', 'slices'];
+        const standardUnits = ['cup', 'tablespoon', 'teaspoon', 'ounce', 'pound', 'gram', 'kilogram', 'milliliter', 'liter', 'piece', 'clove', 'pinch'];
         return standardUnits.includes(unit);
     }
 
