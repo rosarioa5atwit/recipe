@@ -30,7 +30,6 @@
                             <%= user.email %> ▼
                         </a>
                         <div class="dropdown-content" id="userDropdown">
-                            <a href="/private">Dashboard</a>
                             <a href="/logout">Logout</a>
                         </div>
                     </li>
@@ -53,7 +52,6 @@
         dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
     }
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', function(event) {
         const dropdown = document.getElementById('userDropdown');
         const dropbtn = event.target.closest('.dropbtn');

@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Image Preview
   const imageInput = document.getElementById('recipeImage');
   const previewContainer = document.getElementById('imagePreview');
   const previewImage = document.getElementById('previewImage');
@@ -14,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Add Ingredient Functionality
   const addIngredientBtn = document.getElementById('addIngredientBtn');
   const ingredientsContainer = document.getElementById('ingredientsContainer');
   const ingredientTemplate = document.getElementById('ingredientTemplate');
@@ -30,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
   addIngredientBtn.addEventListener('click', addIngredientRow);
   addIngredientRow();
 
-  // Instructions Steps Management
   const addStepBtn = document.getElementById('addStepBtn');
   const instructionsContainer = document.getElementById('instructionsContainer');
   

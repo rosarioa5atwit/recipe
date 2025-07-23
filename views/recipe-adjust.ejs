@@ -1,30 +1,16 @@
 <%- include('parts/header', { title: 'Recipe Ingredient Manager - ' + recipe.title }) %>
 
 <div class="container-fluid">
-    <!-- Header with Recipe Info -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
                     <div class="row align-items-center">
-                        <div class="col-md-3">
+                        <div class="col-md-9">
                             <h5 class="mb-0"><%= recipe.title %></h5>
                             <small class="text-muted">Original: <%= recipe.base_servings %> servings</small>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Target Servings:</label>
-                            <input type="number" id="target-servings" class="form-control" 
-                                   value="<%= recipe.base_servings %>" min="1" max="50">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Scale:</label>
-                            <div class="h4 text-primary" id="scale-display">1.0x</div>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Status:</label>
-                            <div class="badge bg-success" id="recipe-status">Ready</div>
-                        </div>
-                        <div class="col-md-2">
                             <a href="/recipes/<%= recipe.id %>" class="btn btn-secondary w-100">
                                 ← Back to Recipe
                             </a>
@@ -36,11 +22,10 @@
     </div>
 
     <div class="row">
-        <!-- Main Ingredient Panel -->
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header bg-success text-white">
-                    <h6 class="mb-0"> Ingredient Availability Checker</h6>
+                    <h6 class="mb-0">Ingredient Availability Checker</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -73,8 +58,29 @@
                                                 <% } %>
                                             </td>
                                             <td>
-                                                <input type="number" step="0.01" class="form-control form-control-sm have-amount" 
-                                                       value="<%= ingredient.amount %>" style="width: 80px;">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="number" step="0.01" class="form-control form-control-sm have-amount" 
+                                                        value="<%= ingredient.amount %>" style="width: 80px;">
+                                                    <select class="form-select form-select-sm have-unit" style="width: 70px;">
+                                                        <% if (ingredient.unit && ingredient.unit.name) { %>
+                                                            <option value="<%= ingredient.unit.name %>" selected><%= ingredient.unit.name %></option>
+                                                        <% } else { %>
+                                                            <option value="" selected>-</option>
+                                                        <% } %>
+                                                        <option value="cups">cups</option>
+                                                        <option value="tbsp">tbsp</option>
+                                                        <option value="tsp">tsp</option>
+                                                        <option value="oz">oz</option>
+                                                        <option value="lb">lb</option>
+                                                        <option value="g">g</option>
+                                                        <option value="kg">kg</option>
+                                                        <option value="ml">ml</option>
+                                                        <option value="l">l</option>
+                                                        <option value="pcs">pcs</option>
+                                                        <option value="cloves">cloves</option>
+                                                        <option value="slices">slices</option>
+                                                    </select>
+                                                </div>
                                             </td>
                                             <td>
                                                 <span class="adjusted-amount-display badge bg-info" id="adjusted-amount-<%= index %>">
@@ -82,34 +88,45 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <div class="dropdown">
-                                                
-                                                    <ul class="dropdown-menu shadow-sm" style="min-width: 200px;">
-                                                        <% if (ingredient.substitutions && ingredient.substitutions.length > 0) { %>
-                                                            <li><h6 class="dropdown-header text-primary">
+                                                <% if (ingredient.substitutions && ingredient.substitutions.length > 0) { %>
+                                                    <div class="custom-dropdown position-relative">
+                                                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" 
+                                                                data-dropdown-toggle="dropdownSubstitute<%= index %>">
+                                                            <i class="fas fa-exchange-alt me-1"></i>Substitute
+                                                        </button>
+                                                        <div class="dropdown-menu custom-dropdown-menu" 
+                                                             id="dropdownSubstitute<%= index %>" 
+                                                             style="min-width: 250px; display: none;">
+                                                            <h6 class="dropdown-header text-primary">
                                                                 <i class="fas fa-star me-1"></i>Available Substitutes
-                                                            </h6></li>
+                                                            </h6>
+                                                            <hr class="dropdown-divider">
                                                             <% ingredient.substitutions.forEach((sub, subIdx) => { %>
-                                                                <li>
-                                                                    <a class="dropdown-item substitute-option" href="#" 
-                                                                       data-ingredient-index="<%= index %>" 
-                                                                       data-substitute="<%= sub.name %>" 
-                                                                       data-ratio="<%= sub.ratio || 1 %>">
-                                                                        <i class="fas fa-arrow-right me-2 text-muted"></i><%= sub.name %>
-                                                                    </a>
-                                                                </li>
-                                                            <% }); %>
-                                                            <li><hr class="dropdown-divider"></li>
-                                                            <li>
-                                                                <a class="dropdown-item remove-substitute text-danger" href="#" 
-                                                                   data-ingredient-index="<%= index %>">
-                                                                    <i class="fas fa-times me-2"></i>Remove Substitute
+                                                                <a class="dropdown-item substitute-option d-flex justify-content-between align-items-center" 
+                                                                   href="#" 
+                                                                   data-ingredient-index="<%= index %>" 
+                                                                   data-substitute="<%= sub.name %>" 
+                                                                   data-ratio="<%= sub.ratio || 1 %>">
+                                                                    <span>
+                                                                        <i class="fas fa-arrow-right me-2 text-muted"></i>
+                                                                        <%= sub.name %>
+                                                                    </span>
+                                                                    <small class="text-muted">
+                                                                        <%= (sub.ratio || 1) %>:1
+                                                                    </small>
                                                                 </a>
-                                                            </li>
-                                                        </ul>
+                                                            <% }); %>
+                                                            <hr class="dropdown-divider">
+                                                            <a class="dropdown-item remove-substitute text-danger" href="#" 
+                                                               data-ingredient-index="<%= index %>">
+                                                                <i class="fas fa-times me-2"></i>Clear Substitute
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 <% } else { %>
-                                                    <span class="text-muted small">No substitutes available</span>
+                                                    <span class="text-muted small">
+                                                        <i class="fas fa-minus-circle me-1"></i>None available
+                                                    </span>
                                                 <% } %>
                                             </td>
                                         </tr>
@@ -125,613 +142,843 @@
                         </table>
                     </div>
                 </div>
-               
             </div>
         </div>
 
-        <!-- Side Panel -->
         <div class="col-lg-4">
-            <!-- Quick Stats -->
-            <div class="card mb-3">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">📊 Quick Stats</h6>
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Adjusted Recipe</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="h4 text-success" id="available-count">0</div>
-                            <small>Available</small>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th class="fw-bold">Ingredient</th>
+                                <th class="text-end">Adjusted Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adjusted-recipe-table">
+                            <% if (recipe.ingredients && recipe.ingredients.length > 0) { %>
+                                <% recipe.ingredients.forEach((ingredient, index) => { %>
+                                    <tr>
+                                        <td><%= ingredient.name %></td>
+                                        <td class="text-end">
+                                            <span id="adjusted-amount-summary-<%= index %>"><%= ingredient.amount %></span>
+                                            <% if (ingredient.unit && ingredient.unit.name) { %>
+                                                <small class="text-muted"><%= ingredient.unit.name %></small>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center">No ingredients found</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Add Directions Section -->
+                    <% if (recipe.instructions && recipe.instructions.trim().length > 0) { %>
+                        <div class="mt-4">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-list-ol me-2"></i>Directions
+                            </h6>
+                            <div class="directions-content">
+                                <div class="p-3 bg-light rounded">
+                                    <p class="mb-0" style="white-space: pre-line;"><%= recipe.instructions %></p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-4">
-                            <div class="h4 text-warning" id="partial-count">0</div>
-                            <small>Partial</small>
+                    <% } else { %>
+                        <div class="mt-4">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-list-ol me-2"></i>Directions
+                            </h6>
+                            <p class="text-muted">No directions available for this recipe.</p>
                         </div>
-                        <div class="col-4">
-                            <div class="h4 text-danger" id="missing-count">0</div>
-                            <small>Missing</small>
-                        </div>
-                    </div>
-                    <div class="progress mt-2" style="height: 10px;">
-                        <div id="progress-bar" class="progress-bar bg-success" style="width: 100%"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Shopping List -->
-            <div class="card mb-3">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0">🛒 Shopping List</h6>
-                </div>
-                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
-                    <div id="shopping-list">
-                        <div class="text-muted">All ingredients available!</div>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <button class="btn btn-sm btn-outline-primary w-100" onclick="copyShoppingList()">
-                        📄 Copy to Clipboard
-                    </button>
-                </div>
-            </div>
-
-            <!-- Substitutions -->
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0">🔄 Active Substitutions</h6>
-                </div>
-                <div class="card-body" style="max-height: 150px; overflow-y: auto;">
-                    <div id="substitutions-list">
-                        <div class="text-muted">No substitutions made</div>
-                    </div>
+                    <% } %>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
+<style>
+.custom-dropdown {
+    position: relative;
+}
 
-             
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background-color: #fff;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+    padding: 0.5rem 0;
+    margin: 0.125rem 0 0;
+    min-width: 250px;
+}
+
+/* Ensure dropdown appears above table overflow */
+.table-responsive {
+    overflow: visible;
+}
+
+/* Alternative positioning for dropdowns that might go off-screen */
+.custom-dropdown-menu.dropdown-menu-end {
+    left: auto;
+    right: 0;
+}
+
+.custom-dropdown-menu .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.custom-dropdown-menu .dropdown-item:hover,
+.custom-dropdown-menu .dropdown-item:focus {
+    color: #1e2125;
+    background-color: #e9ecef;
+}
+
+.custom-dropdown-menu .dropdown-header {
+    display: block;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+
+.custom-dropdown-menu .dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(0,0,0,.15);
+}
+</style>
 
 <script>
-let originalServings = 4; // Will be initialized from page data
-let currentIngredientIndex = 0;
-
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Get original servings from the page
-    const targetServingsInput = document.getElementById('target-servings');
-    if (targetServingsInput) {
-        originalServings = parseInt(targetServingsInput.value) || 4;
-    }
-    
-    // Set up event listeners
-    targetServingsInput.addEventListener('change', updateScale);
-    
-    // Have amount inputs - set default to recipe amounts for initial display
-    document.querySelectorAll('.have-amount').forEach((input, index) => {
-        // Set default to recipe amount initially
-        const row = input.closest('[data-ingredient]');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        input.value = neededAmount;
-        input.placeholder = 'Enter amount you have';
-        
-        input.addEventListener('change', () => {
-            updateIngredientStatus(index);
-            checkForAutoAdjustment();
-        });
-        
-        input.addEventListener('blur', () => {
-            updateIngredientStatus(index);
-            checkForAutoAdjustment();
+    // Initialize variables - use the original servings from the recipe
+    let originalServings = <%- JSON.stringify(recipe.base_servings || 1) %>;
+    let activeSubstitutions = {};
+
+    // Check if recipe data is properly loaded
+    const recipeData = <%- JSON.stringify(recipe) %>;
+    console.log('Recipe data loaded:', recipeData);
+
+    // Initialize custom dropdowns instead of Bootstrap
+    console.log('Initializing custom dropdowns...');
+    initializeCustomDropdowns();
+
+    // Add debugging for substitutions
+    console.log('Checking ingredient substitutions:');
+    recipeData.ingredients?.forEach((ingredient, index) => {
+        console.log(`Ingredient ${index} (${ingredient.name}):`, {
+            hasSubstitutions: !!(ingredient.substitutions && ingredient.substitutions.length > 0),
+            substitutionsCount: ingredient.substitutions?.length || 0,
+            substitutions: ingredient.substitutions || 'undefined'
         });
     });
 
-    // Substitute dropdown options
+    // Setup event listeners
+    document.querySelectorAll('.have-amount').forEach(input => {
+        input.addEventListener('input', handleIngredientChange);
+    });
+
+    document.querySelectorAll('.have-unit').forEach(select => {
+        select.addEventListener('change', handleIngredientChange);
+    });
+
     document.querySelectorAll('.substitute-option').forEach(option => {
-        option.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Substitute option clicked:', this.dataset);
-            const ingredientIndex = parseInt(this.dataset.ingredientIndex);
-            const substituteName = this.dataset.substitute;
-            const ratio = parseFloat(this.dataset.ratio);
-            console.log(`Applying substitute: ${substituteName} for ingredient ${ingredientIndex} with ratio ${ratio}`);
-            applySubstitute(ingredientIndex, substituteName, ratio);
-        });
+        option.addEventListener('click', applySubstitution);
     });
-    
-    // Remove substitute options
-    document.querySelectorAll('.remove-substitute').forEach(option => {
-        option.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Remove substitute clicked for ingredient:', this.dataset.ingredientIndex);
-            const ingredientIndex = parseInt(this.dataset.ingredientIndex);
-            removeSubstitute(ingredientIndex);
-        });
+
+    document.querySelectorAll('.remove-substitute').forEach(button => {
+        button.addEventListener('click', removeSubstitution);
     });
-    
-    console.log('Substitute dropdown listeners attached. Found:', 
-                document.querySelectorAll('.substitute-option').length, 'substitute options and',
-                document.querySelectorAll('.remove-substitute').length, 'remove options');
-    
-    // Initialize with default values (assuming full amounts available)
+
+    // Initial updates
     updateAllStatuses();
-    // Set initial adjusted amounts to show "can make full recipe"
-    updateAdjustedAmounts(1.0, true);
-});
+    updateAdjustedAmounts(1.0, false);
 
-// Check if we should auto-adjust recipe based on limiting ingredient
-function checkForAutoAdjustment() {
-    const ingredients = document.querySelectorAll('[data-ingredient]');
-    let limitingRatio = 1.0;
-    let hasUserInputs = false;
-    
-    ingredients.forEach(row => {
-        const haveInput = row.querySelector('.have-amount');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+    // Main functions
+    async function handleIngredientChange(event) {
+        const row = event.target.closest('[data-ingredient]');
+        const index = row ? parseInt(row.getAttribute('data-ingredient')) : -1;
         
-        if (haveInput.value && haveInput.value.trim() !== '') {
-            hasUserInputs = true;
-            const haveAmount = parseFloat(haveInput.value) || 0;
-            const ratio = haveAmount / neededAmount;
-            
-            if (ratio < limitingRatio) {
-                limitingRatio = ratio;
-            }
-        }
-    });
-    
-    // If user has provided inputs and limiting ratio is less than 1, suggest adjustment
-    if (hasUserInputs && limitingRatio < 1.0) {
-        const newServings = Math.floor(originalServings * limitingRatio);
-        if (newServings > 0 && newServings !== parseInt(document.getElementById('target-servings').value)) {
-            showAutoAdjustSuggestion(newServings, limitingRatio);
+        if (index >= 0) {
+            await updateIngredientStatus(index);
+            await checkForAutoAdjustment();
         }
     }
-    
-    // Update adjusted amounts to show maximum possible recipe
-    updateAdjustedAmounts(limitingRatio, hasUserInputs);
-}
 
-function showAutoAdjustSuggestion(suggestedServings, ratio) {
-    const suggestion = document.getElementById('auto-adjust-suggestion');
-    if (suggestion) {
-        suggestion.remove();
-    }
-    
-    const suggestionHtml = `
-        <div id="auto-adjust-suggestion" class="alert alert-info alert-dismissible fade show mt-2" role="alert">
-            <strong>💡 Suggestion:</strong> Based on your available ingredients, you could make ${suggestedServings} servings instead. 
-            <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="applyAutoAdjustment(${suggestedServings})">
-                Adjust Recipe
-            </button>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    
-    document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
-}
-
-function applyAutoAdjustment(suggestedServings) {
-    document.getElementById('target-servings').value = suggestedServings;
-    updateScale();
-    document.getElementById('auto-adjust-suggestion').remove();
-}
-
-function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
-    const ingredients = document.querySelectorAll('[data-ingredient]');
-    
-    ingredients.forEach((row, index) => {
-        const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
+    async function updateIngredientStatus(index) {
+        console.log(`🔍 Updating ingredient ${index} status...`);
+        const row = document.querySelector(`[data-ingredient="${index}"]`);
+        if (!row) return;
+        
+        const neededAmountEl = row.querySelector('.needed-amount');
+        const neededAmount = parseFloat(neededAmountEl.textContent) || 0;
         const haveInput = row.querySelector('.have-amount');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        
-        if (!hasUserInputs) {
-            // Default state - show that full recipe can be made
-            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
-            adjustedAmountDisplay.textContent = 'Can make full recipe';
-            return;
-        }
-        
-        if (!haveInput.value || haveInput.value.trim() === '') {
-            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-secondary';
-            adjustedAmountDisplay.textContent = 'Enter amount above';
-            return;
-        }
+        const haveUnitSelect = row.querySelector('.have-unit');
         
         const haveAmount = parseFloat(haveInput.value) || 0;
+        const haveUnit = haveUnitSelect ? haveUnitSelect.value : '';
         
-        // Calculate the maximum amount that can be used for the recipe
-        // based on the most limiting ingredient
-        const maxUsableAmount = Math.min(haveAmount, neededAmount * limitingRatio);
-        const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
+        // Safely get the needed unit
+        const neededUnitEl = neededAmountEl.nextElementSibling;
+        const neededUnit = neededUnitEl ? neededUnitEl.textContent.trim() : '';
         
-        if (limitingRatio >= 1.0) {
-            // Can make full recipe or more
-            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
-            adjustedAmountDisplay.textContent = `Use ${formatAmount(neededAmount)} ${unit}`;
-        } else if (limitingRatio > 0) {
-            // Can make partial recipe
-            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-warning';
-            adjustedAmountDisplay.textContent = `Use ${formatAmount(maxUsableAmount)} ${unit}`;
+        console.log(`📊 Ingredient ${index}: Need ${neededAmount} ${neededUnit}, Have ${haveAmount} ${haveUnit}`);
+        
+        let convertedHaveAmount = haveAmount;
+        if (haveUnit !== neededUnit && haveUnit && neededUnit) {
+            console.log(`🔄 Units differ - converting ${haveAmount} ${haveUnit} to ${neededUnit}`);
+            try {
+                convertedHaveAmount = await convertUnits(haveAmount, haveUnit, neededUnit);
+                console.log(`📈 Converted amount: ${convertedHaveAmount} ${neededUnit}`);
+            } catch (error) {
+                console.error('Conversion failed:', error);
+                convertedHaveAmount = haveAmount; // Fallback to original amount
+            }
         } else {
-            // Cannot make recipe
-            adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
-            adjustedAmountDisplay.textContent = 'Cannot use';
+            console.log(`✅ Units match or empty - no conversion needed`);
         }
-    });
-}
-
-function applySubstitute(index, substituteName, ratio) {
-    const row = document.querySelector(`[data-ingredient="${index}"]`);
-    if (!row) return;
-    
-    console.log(`Applying substitute: ${substituteName} for ingredient ${index} with ratio ${ratio}`);
-    
-    const ingredientNameEl = row.querySelector('.ingredient-name');
-    const originalName = ingredientNameEl.dataset.original || ingredientNameEl.textContent;
-    
-    // Store original name if not already stored
-    if (!ingredientNameEl.dataset.original) {
-        ingredientNameEl.dataset.original = originalName;
-    }
-    
-    // Update the ingredient name to show substitution
-    ingredientNameEl.innerHTML = `${substituteName} <small class="text-muted">(was ${originalName})</small>`;
-    
-    // Show substitute info
-    const substituteInfo = row.querySelector('.substitute-info');
-    substituteInfo.innerHTML = `<small class="text-info">🔄 Using ${substituteName} instead of ${originalName} (${ratio}:1 ratio)</small>`;
-    substituteInfo.style.display = 'block';
-    
-    // Mark row as substituted
-    row.classList.add('substituted');
-    
-    // Get current scale factor
-    const targetServings = parseInt(document.getElementById('target-servings').value);
-    const scaleFactor = targetServings / originalServings;
-    
-    // Adjust the needed amount based on ratio and current scale
-    const neededAmountElement = row.querySelector('.needed-amount');
-    const originalAmount = parseFloat(neededAmountElement.dataset.original);
-    const adjustedAmount = originalAmount * ratio * scaleFactor;
-    neededAmountElement.textContent = formatAmount(adjustedAmount);
-    
-    // Store the substitute ratio for future scale updates
-    neededAmountElement.dataset.substituteRatio = ratio;
-    
-    // Update the "have" amount to match the adjusted amount (assuming they'll get the substitute)
-    const haveAmountInput = row.querySelector('.have-amount');
-    haveAmountInput.value = formatAmount(adjustedAmount);
-    
-    // Update status
-    updateIngredientStatus(index);
-    updateSubstitutionsList();
-    updateOverallStats();
-}
-
-function removeSubstitute(index) {
-    const row = document.querySelector(`[data-ingredient="${index}"]`);
-    if (!row) return;
-    
-    console.log(`Removing substitute for ingredient ${index}`);
-    
-    const ingredientNameEl = row.querySelector('.ingredient-name');
-    const originalName = ingredientNameEl.dataset.original;
-    
-    if (originalName) {
-        // Reset to original ingredient name
-        ingredientNameEl.textContent = originalName;
-        ingredientNameEl.removeAttribute('data-original');
-    }
-    
-    // Hide substitute info
-    const substituteInfo = row.querySelector('.substitute-info');
-    substituteInfo.style.display = 'none';
-    row.classList.remove('substituted');
-    
-    // Reset amounts to original with current scale
-    const neededAmountElement = row.querySelector('.needed-amount');
-    const originalAmount = parseFloat(neededAmountElement.dataset.original);
-    const targetServings = parseInt(document.getElementById('target-servings').value);
-    const scaleFactor = targetServings / originalServings;
-    const scaledAmount = originalAmount * scaleFactor;
-    
-    neededAmountElement.textContent = formatAmount(scaledAmount);
-    neededAmountElement.removeAttribute('data-substitute-ratio');
-    
-    const haveAmountInput = row.querySelector('.have-amount');
-    haveAmountInput.value = formatAmount(scaledAmount);
-    
-    updateIngredientStatus(index);
-    updateSubstitutionsList();
-    updateOverallStats();
-}
-
-function updateSubstitutionsList() {
-    const substitutionsList = document.getElementById('substitutions-list');
-    const substitutions = [];
-    
-    document.querySelectorAll('[data-ingredient].substituted').forEach(row => {
-        const substituteInfo = row.querySelector('.substitute-info small').textContent;
-        substitutions.push(substituteInfo);
-    });
-    
-    if (substitutions.length === 0) {
-        substitutionsList.innerHTML = '<div class="text-muted">No substitutions made</div>';
-    } else {
-        substitutionsList.innerHTML = substitutions.map(sub => 
-            `<div class="mb-1 small text-info">${sub}</div>`
-        ).join('');
-    }
-}
-
-function updateScale() {
-    const targetServings = parseInt(document.getElementById('target-servings').value);
-    const scaleFactor = targetServings / originalServings;
-    
-    document.getElementById('scale-display').textContent = scaleFactor.toFixed(1) + 'x';
-    
-    // Update all needed amounts, considering substitutes
-    document.querySelectorAll('.needed-amount').forEach(element => {
-        const originalAmount = parseFloat(element.dataset.original);
-        const substituteRatio = parseFloat(element.dataset.substituteRatio) || 1;
-        const scaledAmount = originalAmount * scaleFactor * substituteRatio;
-        element.textContent = formatAmount(scaledAmount);
-    });
-    
-    updateAllStatuses();
-}
-
-function updateAllStatuses() {
-    document.querySelectorAll('[data-ingredient]').forEach((row, index) => {
-        updateIngredientStatus(index);
-    });
-    updateOverallStats();
-}
-
-function updateIngredientStatus(index) {
-    const row = document.querySelector(`[data-ingredient="${index}"]`);
-    if (!row) return;
-    
-    const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-    const haveInput = row.querySelector('.have-amount');
-    
-    // Remove existing status classes but keep substituted if it exists
-    const wasSubstituted = row.classList.contains('substituted');
-    row.classList.remove('insufficient', 'partial');
-    if (wasSubstituted) row.classList.add('substituted');
-    
-    const haveAmount = parseFloat(haveInput.value) || 0;
-    
-    if (haveAmount >= neededAmount) {
-        haveInput.style.borderColor = '#198754';
-    } else if (haveAmount > 0) {
-        row.classList.add('partial');
-        haveInput.style.borderColor = '#ffc107';
-    } else {
-        row.classList.add('insufficient');
-        haveInput.style.borderColor = '#dc3545';
-    }
-}
-
-function updateOverallStats() {
-    const rows = document.querySelectorAll('[data-ingredient]');
-    let available = 0, partial = 0, missing = 0;
-    
-    rows.forEach(row => {
-        const haveInput = row.querySelector('.have-amount');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        const haveAmount = parseFloat(haveInput.value) || 0;
         
-        if (haveAmount >= neededAmount) {
-            available++;
-        } else if (haveAmount > 0) {
-            partial++;
+        // Update visual state
+        row.classList.remove('partial', 'insufficient');
+        if (convertedHaveAmount >= neededAmount) {
+            console.log(`✅ Sufficient: ${convertedHaveAmount} >= ${neededAmount}`);
+            haveInput.style.borderColor = '#198754';
+        } else if (convertedHaveAmount > 0) {
+            console.log(`⚠️ Partial: ${convertedHaveAmount} < ${neededAmount}`);
+            row.classList.add('partial');
+            haveInput.style.borderColor = '#ffc107';
         } else {
-            missing++;
+            console.log(`❌ Insufficient: ${convertedHaveAmount} = 0`);
+            row.classList.add('insufficient');
+            haveInput.style.borderColor = '#dc3545';
         }
-    });
-    
-    document.getElementById('available-count').textContent = available;
-    document.getElementById('partial-count').textContent = partial;
-    document.getElementById('missing-count').textContent = missing;
-    
-    const total = rows.length;
-    const progressPercent = total > 0 ? Math.round((available / total) * 100) : 100;
-    document.getElementById('progress-bar').style.width = progressPercent + '%';
-    
-    // Update recipe status
-    const statusEl = document.getElementById('recipe-status');
-    if (missing === 0 && partial === 0) {
-        statusEl.className = 'badge bg-success';
-        statusEl.textContent = 'Ready to Cook!';
-    } else if (progressPercent >= 75) {
-        statusEl.className = 'badge bg-warning';
-        statusEl.textContent = 'Almost Ready';
-    } else {
-        statusEl.className = 'badge bg-danger';
-        statusEl.textContent = 'Need Ingredients';
     }
-    
-    updateShoppingList();
-}
 
-function updateShoppingList() {
-    const shoppingList = document.getElementById('shopping-list');
-    const items = [];
-    
-    document.querySelectorAll('[data-ingredient]').forEach(row => {
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        const haveInput = row.querySelector('.have-amount');
+    async function checkForAutoAdjustment() {
+        const ingredients = document.querySelectorAll('[data-ingredient]');
+        let limitingRatio = 1.0;
+        let hasUserInputs = false;
         
-        // Only add to shopping list if user specified they have less than needed
-        if (haveInput.value && haveInput.value.trim() !== '') {
-            const haveAmount = parseFloat(haveInput.value) || 0;
+        for (const row of ingredients) {
+            const haveInput = row.querySelector('.have-amount');
+            const haveUnitSelect = row.querySelector('.have-unit');
+            const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
             
-            if (haveAmount < neededAmount) {
-                const name = row.querySelector('.ingredient-name').textContent;
-                const needToBuy = neededAmount - haveAmount;
-                const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
-                items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
+            if (haveInput.value && haveInput.value.trim() !== '') {
+                hasUserInputs = true;
+                const haveAmount = parseFloat(haveInput.value) || 0;
+                const haveUnit = haveUnitSelect ? haveUnitSelect.value : '';
+                const neededUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
+                
+                let convertedHaveAmount = haveAmount;
+                if (haveUnit !== neededUnit.trim() && haveUnit && neededUnit.trim()) {
+                    convertedHaveAmount = await convertUnits(haveAmount, haveUnit, neededUnit.trim());
+                }
+                
+                const ratio = convertedHaveAmount / neededAmount;
+                if (ratio < limitingRatio) {
+                    limitingRatio = ratio;
+                }
             }
         }
-    });
-    
-    if (items.length === 0) {
-        shoppingList.innerHTML = '<div class="text-muted">Enter ingredient amounts to generate shopping list</div>';
-    } else {
-        shoppingList.innerHTML = items.map(item => 
-            `<div class="mb-1">• ${item}</div>`
-        ).join('');
+        
+        await updateAdjustedAmounts(limitingRatio, hasUserInputs);
     }
-}
 
-// Quick action functions
-function setAllAvailable() {
-    document.querySelectorAll('.have-amount').forEach((input, index) => {
-        const row = input.closest('[data-ingredient]');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        input.value = neededAmount;
-        updateIngredientStatus(index);
-    });
-    checkForAutoAdjustment();
-}
-
-function setAllMissing() {
-    document.querySelectorAll('.have-amount').forEach((input, index) => {
-        input.value = 0;
-        updateIngredientStatus(index);
-    });
-    checkForAutoAdjustment();
-}
-
-function setHalfAmounts() {
-    document.querySelectorAll('.have-amount').forEach((input, index) => {
-        const row = input.closest('[data-ingredient]');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        input.value = neededAmount / 2;
-        updateIngredientStatus(index);
-    });
-    checkForAutoAdjustment();
-}
-
-function formatAmount(amount) {
-    if (amount === Math.floor(amount)) return amount.toString();
-    if (Math.abs(amount - 0.5) < 0.01) return '½';
-    if (Math.abs(amount - 0.25) < 0.01) return '¼';
-    if (Math.abs(amount - 0.75) < 0.01) return '¾';
-    if (Math.abs(amount - 1.5) < 0.01) return '1½';
-    return amount.toFixed(2).replace(/\.?0+$/, '');
-}
-
-function generateShoppingList() {
-    const items = [];
-    document.querySelectorAll('[data-ingredient]').forEach(row => {
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        const haveAmount = parseFloat(row.querySelector('.have-amount').value) || 0;
+    async function convertUnits(amount, fromUnit, toUnit) {
+        console.log(`🔄 CONVERTING: ${amount} ${fromUnit} → ${toUnit}`);
         
-        if (haveAmount < neededAmount) {
-            const name = row.querySelector('.ingredient-name').textContent;
-            const needToBuy = neededAmount - haveAmount;
-            const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
-            items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
+        if (fromUnit === toUnit) {
+            console.log(`✅ Same units, no conversion needed: ${amount}`);
+            return amount;
         }
-    });
-    
-    if (items.length === 0) {
-        alert('Great! You have all ingredients needed.');
-    } else {
-        const listText = 'Shopping List:\n\n' + items.map(item => `• ${item}`).join('\n');
-        alert(listText);
-    }
-}
-
-function copyShoppingList() {
-    const items = [];
-    document.querySelectorAll('[data-ingredient]').forEach(row => {
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        const haveAmount = parseFloat(row.querySelector('.have-amount').value) || 0;
         
-        if (haveAmount < neededAmount) {
-            const name = row.querySelector('.ingredient-name').textContent;
-            const needToBuy = neededAmount - haveAmount;
-            const unit = row.querySelector('.needed-amount').nextElementSibling?.textContent || '';
-            items.push(`${formatAmount(needToBuy)} ${unit} ${name}`.trim());
-        }
-    });
-    
-    const listText = items.map(item => `• ${item}`).join('\n');
-    navigator.clipboard.writeText(listText).then(() => {
-        alert('Shopping list copied to clipboard!');
-    });
-}
-
-function savePreferences() {
-    alert('Preferences saved! (This would save to your profile in a full app)');
-}
-
-// Add new function to apply maximum recipe adjustment
-function applyMaximumRecipe() {
-    const ingredients = document.querySelectorAll('[data-ingredient]');
-    let limitingRatio = 1.0;
-    let hasUserInputs = false;
-    
-    // Find the limiting ratio
-    ingredients.forEach(row => {
-        const haveInput = row.querySelector('.have-amount');
-        const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
-        
-        if (haveInput.value && haveInput.value.trim() !== '') {
-            hasUserInputs = true;
-            const haveAmount = parseFloat(haveInput.value) || 0;
-            const ratio = haveAmount / neededAmount;
+        // First try API conversion
+        try {
+            const url = `/api/convert?amount=${amount}&from=${fromUnit}&to=${toUnit}`;
+            console.log(`📡 Making API call to: ${url}`);
             
-            if (ratio < limitingRatio) {
-                limitingRatio = ratio;
+            const response = await fetch(url);
+            console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`📥 API response data:`, data);
+                
+                if (data && typeof data.result === 'number') {
+                    console.log(`✅ CONVERSION RESULT: ${amount} ${fromUnit} = ${data.result} ${toUnit}`);
+                    return data.result;
+                }
+            }
+        } catch (error) {
+            console.error('❌ API conversion failed:', error);
+        }
+        
+        // Fallback to client-side conversion
+        console.log(`⚠️ Using fallback conversion...`);
+        return convertUnitsClientSide(amount, fromUnit, toUnit);
+    }
+
+    function convertUnitsClientSide(amount, fromUnit, toUnit) {
+        // Normalize units
+        const normalizeUnit = (unit) => {
+            const unitMap = {
+                'cup': 'cups',
+                'cups': 'cups',
+                'tbsp': 'tbsp',
+                'tsp': 'tsp',
+                'pc': 'pcs',
+                'pcs': 'pcs',
+                'piece': 'pcs',
+                'item': 'pcs',
+                'clove': 'cloves',
+                'cloves': 'cloves',
+                'slice': 'slices',
+                'slices': 'slices'
+            };
+            return unitMap[unit.toLowerCase()] || unit.toLowerCase();
+        };
+        
+        const normalizedFrom = normalizeUnit(fromUnit);
+        const normalizedTo = normalizeUnit(toUnit);
+        
+        if (normalizedFrom === normalizedTo) {
+            return amount;
+        }
+        
+        // Conversion tables (all conversions to base units)
+        const conversions = {
+            // Volume conversions (to ml)
+            volume: {
+                'ml': 1,
+                'l': 1000,
+                'cups': 236.588,
+                'tbsp': 14.7868,
+                'tsp': 4.92892,
+                'fl oz': 29.5735,
+                'oz': 29.5735, // fluid oz
+                'qt': 946.353,
+                'pt': 473.176,
+                'gal': 3785.41
+            },
+            // Weight conversions (to grams)
+            weight: {
+                'g': 1,
+                'kg': 1000,
+                'oz': 28.3495, // weight oz
+                'lb': 453.592,
+                'mg': 0.001
+            },
+            // Count conversions (no conversion needed)
+            count: {
+                'pcs': 1,
+                'pieces': 1,
+                'items': 1,
+                'cloves': 1,
+                'slices': 1,
+                'whole': 1,
+                'each': 1
+            }
+        };
+        
+        // Find categories
+        let fromCategory = null;
+        let toCategory = null;
+        
+        for (const [category, units] of Object.entries(conversions)) {
+            if (units[normalizedFrom] !== undefined) fromCategory = category;
+            if (units[normalizedTo] !== undefined) toCategory = category;
+        }
+        
+        // Check if conversion is possible
+        if (fromCategory !== toCategory) {
+            console.warn(`❌ Cannot convert ${fromUnit} to ${toUnit} - different unit types`);
+            return amount; // Return original amount if conversion not possible
+        }
+        
+        if (!fromCategory) {
+            console.warn(`❌ Unknown units: ${fromUnit} or ${toUnit}`);
+            return amount;
+        }
+        
+        // Convert
+        const fromRatio = conversions[fromCategory][normalizedFrom];
+        const toRatio = conversions[fromCategory][normalizedTo];
+        
+        if (!fromRatio || !toRatio) {
+            console.warn(`❌ Missing conversion ratios for ${fromUnit} or ${toUnit}`);
+            return amount;
+        }
+        
+        const result = (amount * fromRatio) / toRatio;
+        const rounded = Math.round(result * 100000) / 100000;
+        
+        console.log(`🧮 Client conversion: ${amount} * ${fromRatio} / ${toRatio} = ${rounded}`);
+        
+        return rounded;
+    }
+
+    function formatAmount(amount) {
+        if (typeof amount !== 'number' || isNaN(amount)) {
+            return '0';
+        }
+        
+        if (amount === Math.floor(amount)) return amount.toString();
+        if (Math.abs(amount - 0.5) < 0.01) return '½';
+        if (Math.abs(amount - 0.25) < 0.01) return '¼';
+        if (Math.abs(amount - 0.75) < 0.01) return '¾';
+        if (Math.abs(amount - 1.5) < 0.01) return '1½';
+        if (Math.abs(amount - 2.5) < 0.01) return '2½';
+        if (Math.abs(amount - 0.33) < 0.01) return '⅓';
+        if (Math.abs(amount - 0.67) < 0.01) return '⅔';
+        if (Math.abs(amount - 1.33) < 0.01) return '1⅓';
+        if (Math.abs(amount - 1.67) < 0.01) return '1⅔';
+        
+        // For very small amounts, show more precision
+        if (amount < 0.1) {
+            return amount.toFixed(3).replace(/\.?0+$/, '');
+        }
+        
+        return amount.toFixed(2).replace(/\.?0+$/, '');
+    }
+
+    function findBestDisplayUnit(amount, originalUnit, unitCategory) {
+        console.log(`🔍 Finding best unit for ${amount} ${originalUnit} in category ${unitCategory}`);
+        
+        // First, normalize the original unit
+        const normalizeUnit = (unit) => {
+            const unitMap = {
+                'cup': 'cups',
+                'cups': 'cups',
+                'tbsp': 'tbsp',
+                'tsp': 'tsp',
+                'pc': 'pcs',
+                'pcs': 'pcs',
+                'piece': 'pcs',
+                'item': 'pcs',
+                'clove': 'cloves',
+                'cloves': 'cloves',
+                'slice': 'slices',
+                'slices': 'slices'
+            };
+            return unitMap[unit.toLowerCase()] || unit.toLowerCase();
+        };
+
+        const normalizedOriginal = normalizeUnit(originalUnit);
+        
+        // For same unit conversions or simple amounts, just return the original
+        if (amount >= 0.25 && amount <= 100) {
+            // Check if the amount is already reasonable in the original unit
+            const isWholeNumber = Math.abs(amount - Math.round(amount)) < 0.001;
+            const isCommonFraction = [0.125, 0.25, 0.33, 0.5, 0.67, 0.75].some(frac => 
+                Math.abs(amount - frac) < 0.02
+            );
+            
+            if (isWholeNumber || isCommonFraction) {
+                console.log(`✅ Keeping original unit: ${formatAmount(amount)} ${normalizedOriginal}`);
+                return { amount, unit: normalizedOriginal };
             }
         }
-    });
-    
-    if (!hasUserInputs) {
-        alert('Please enter ingredient amounts first');
-        return;
-    }
-    
-    // Adjust serving size to maximum possible
-    const maxServings = Math.floor(originalServings * limitingRatio);
-    if (maxServings > 0) {
-        document.getElementById('target-servings').value = maxServings;
-        updateScale();
+
+        // Get the unit category conversion table
+        const conversions = {
+            volume: {
+                'ml': 1,
+                'l': 1000,
+                'cups': 236.588,
+                'tbsp': 14.7868,
+                'tsp': 4.92892,
+                'fl oz': 29.5735,
+                'oz': 29.5735,
+                'qt': 946.353,
+                'pt': 473.176,
+                'gal': 3785.41
+            },
+            weight: {
+                'g': 1,
+                'kg': 1000,
+                'oz': 28.3495,
+                'lb': 453.592,
+                'mg': 0.001
+            },
+            count: {
+                'pcs': 1,
+                'pieces': 1,
+                'items': 1,
+                'cloves': 1,
+                'slices': 1,
+                'whole': 1,
+                'each': 1
+            }
+        };
+
+        const categoryTable = conversions[unitCategory];
+        if (!categoryTable || !categoryTable[normalizedOriginal]) {
+            console.log(`❌ Unit '${originalUnit}' not found in ${unitCategory} category, keeping original`);
+            return { amount, unit: normalizedOriginal };
+        }
+
+        // Convert amount to base unit
+        const baseAmount = amount * categoryTable[normalizedOriginal];
         
-        // Force update all statuses and adjusted amounts
+        let bestUnit = normalizedOriginal;
+        let bestAmount = amount;
+        let bestScore = Math.abs(amount - Math.round(amount)) + 0.1; // Small penalty for original
+
+        console.log(`  Base amount: ${baseAmount}`);
+
+        // Test each unit in the category
+        Object.keys(categoryTable).forEach(unit => {
+            const convertedAmount = baseAmount / categoryTable[unit];
+            
+            // Skip if too small (less than 0.05) or too large (more than 1000)
+            if (convertedAmount < 0.05 || convertedAmount > 1000) {
+                return;
+            }
+            
+            // Calculate score: prefer whole numbers or simple fractions
+            let score = Math.abs(convertedAmount - Math.round(convertedAmount));
+            
+            // Check for common fractions
+            const fractions = [0.125, 0.25, 0.33, 0.5, 0.67, 0.75];
+            const decimal = convertedAmount - Math.floor(convertedAmount);
+            
+            let isFraction = false;
+            fractions.forEach(frac => {
+                if (Math.abs(decimal - frac) < 0.02) {
+                    score = Math.min(score, 0.05);
+                    isFraction = true;
+                }
+            });
+            
+            // Special bonus for exact whole numbers
+            if (Math.abs(convertedAmount - Math.round(convertedAmount)) < 0.001) {
+                score = 0.01;
+            }
+            
+            // Prefer units that result in amounts between 0.25 and 50
+            if (convertedAmount >= 0.25 && convertedAmount <= 50) {
+                score *= 0.7;
+            } else if (convertedAmount >= 0.1 && convertedAmount <= 100) {
+                score *= 0.9;
+            }
+            
+            // If this is significantly better than current best
+            if (score < bestScore - 0.05) { // Require significant improvement
+                bestScore = score;
+                bestAmount = convertedAmount;
+                bestUnit = unit;
+                console.log(`    🎯 New best: ${formatAmount(convertedAmount)} ${unit}`);
+            }
+        });
+
+        console.log(`🎯 Final: ${formatAmount(bestAmount)} ${bestUnit}`);
+        return { amount: bestAmount, unit: bestUnit };
+    }
+
+    async function updateAdjustedAmounts(limitingRatio, hasUserInputs) {
+        console.log(`🔧 Updating adjusted amounts - ratio: ${limitingRatio}, hasInputs: ${hasUserInputs}`);
+        const ingredients = document.querySelectorAll('[data-ingredient]');
+        
+        for (let index = 0; index < ingredients.length; index++) {
+            const row = ingredients[index];
+            const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
+            const haveInput = row.querySelector('.have-amount');
+            const haveUnitSelect = row.querySelector('.have-unit');
+            const neededAmount = parseFloat(row.querySelector('.needed-amount').textContent);
+            const originalUnit = row.querySelector('.needed-amount').nextElementSibling?.textContent?.trim() || '';
+            
+            console.log(`  Ingredient ${index}: needed=${neededAmount} ${originalUnit}`);
+            
+            if (!hasUserInputs) {
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
+                adjustedAmountDisplay.textContent = 'Can make full recipe';
+                continue;
+            }
+            
+            if (!haveInput.value || haveInput.value.trim() === '') {
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-secondary';
+                adjustedAmountDisplay.textContent = 'Enter amount above';
+                continue;
+            }
+            
+            const haveAmount = parseFloat(haveInput.value) || 0;
+            const haveUnit = haveUnitSelect ? haveUnitSelect.value : '';
+            
+            let convertedHaveAmount = haveAmount;
+            
+            if (haveUnit !== originalUnit && haveUnit && originalUnit) {
+                convertedHaveAmount = await convertUnits(haveAmount, haveUnit, originalUnit);
+            }
+            
+            // Calculate the actual amount to use
+            let amountToUse;
+            if (limitingRatio >= 1.0 && convertedHaveAmount >= neededAmount) {
+                amountToUse = neededAmount;
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-success';
+                adjustedAmountDisplay.textContent = `Use ${formatAmount(amountToUse)} ${originalUnit}`;
+            } else if (limitingRatio > 0) {
+                amountToUse = neededAmount * limitingRatio;
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-warning';
+                adjustedAmountDisplay.textContent = `Use ${formatAmount(amountToUse)} ${originalUnit}`;
+            } else {
+                adjustedAmountDisplay.className = 'adjusted-amount-display badge bg-danger';
+                adjustedAmountDisplay.textContent = 'Cannot use';
+            }
+        }
+        
+        updateAdjustedRecipeTable();
+    }
+
+    function updateAdjustedRecipeTable() {
+        // Remove servings and scale factor updates since they're no longer displayed
+        document.querySelectorAll('[data-ingredient]').forEach((row, index) => {
+            const adjustedAmountDisplay = document.getElementById(`adjusted-amount-${index}`);
+            const summaryEl = document.getElementById(`adjusted-amount-summary-${index}`);
+            
+            // Update ingredient name to show substitute if applicable
+            const ingredientNameCell = document.querySelector(`#adjusted-recipe-table tr:nth-child(${index + 1}) td:first-child`);
+            if (ingredientNameCell) {
+                const originalName = row.querySelector('.ingredient-name').textContent;
+                
+                if (activeSubstitutions[index]) {
+                    // Show only substitute name
+                    ingredientNameCell.innerHTML = `<span class="text-warning fw-bold">${activeSubstitutions[index].name}</span>`;
+                } else {
+                    // Show original name
+                    ingredientNameCell.textContent = originalName;
+                }
+            }
+            
+            if (summaryEl && adjustedAmountDisplay) {
+                const adjustedText = adjustedAmountDisplay.textContent;
+                
+                if (adjustedText.includes('Use ')) {
+                    const match = adjustedText.match(/Use\s+([^\s]+)\s+(.+)/);
+                    if (match) {
+                        summaryEl.textContent = match[1];
+                        const unitEl = summaryEl.nextElementSibling;
+                        if (unitEl) {
+                            unitEl.textContent = match[2];
+                        }
+                    }
+                } else if (adjustedText === 'Can make full recipe') {
+                    const neededAmountEl = row.querySelector('.needed-amount');
+                    const originalAmount = parseFloat(neededAmountEl.textContent);
+                    const originalUnit = neededAmountEl.nextElementSibling?.textContent?.trim() || '';
+                    
+                    // Show original amount since scale factor is 1.0
+                    summaryEl.textContent = formatAmount(originalAmount);
+                    const unitEl = summaryEl.nextElementSibling;
+                    if (unitEl) {
+                        unitEl.textContent = originalUnit;
+                    }
+                } else if (adjustedText === 'Cannot use') {
+                    summaryEl.textContent = '0';
+                } else {
+                    const neededAmountEl = row.querySelector('.needed-amount');
+                    summaryEl.textContent = neededAmountEl.textContent;
+                }
+            }
+        });
+    }
+
+    function initializeCustomDropdowns() {
+        // Handle dropdown toggle clicks
+        document.querySelectorAll('[data-dropdown-toggle]').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetId = this.getAttribute('data-dropdown-toggle');
+                const dropdown = document.getElementById(targetId);
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.custom-dropdown-menu').forEach(menu => {
+                    if (menu.id !== targetId) {
+                        menu.style.display = 'none';
+                    }
+                });
+                
+                // Position dropdown relative to button
+                if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                    // Show dropdown
+                    dropdown.style.display = 'block';
+                    
+                    // Check if dropdown goes off-screen and adjust position
+                    const rect = dropdown.getBoundingClientRect();
+                    const viewportWidth = window.innerWidth;
+                    
+                    // If dropdown goes off the right edge, align it to the right of the button
+                    if (rect.right > viewportWidth) {
+                        dropdown.classList.add('dropdown-menu-end');
+                    } else {
+                        dropdown.classList.remove('dropdown-menu-end');
+                    }
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.custom-dropdown-menu').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+        
+        console.log('Custom dropdowns initialized');
+    }
+
+    function applySubstitution(event) {
+        event.preventDefault();
+        const index = event.target.getAttribute('data-ingredient-index');
+        const substitute = event.target.getAttribute('data-substitute');
+        const ratio = parseFloat(event.target.getAttribute('data-ratio')) || 1;
+        
+        console.log(`🔄 Applying substitution for ingredient ${index}: ${substitute} (ratio: ${ratio})`);
+        
+        // Update the row with substitution info
+        const row = document.querySelector(`[data-ingredient="${index}"]`);
+        if (row) {
+            row.classList.add('substituted');
+            row.querySelector('.substitute-info').style.display = 'block';
+            row.querySelector('.substitute-info small').textContent = `Using substitute: ${substitute}`;
+            
+            // Store the substitution
+            activeSubstitutions[index] = {
+                name: substitute,
+                ratio: ratio
+            };
+            
+            // Update the needed amount display
+            const neededAmount = row.querySelector('.needed-amount');
+            const originalAmount = parseFloat(neededAmount.getAttribute('data-original'));
+            neededAmount.setAttribute('data-substitute-ratio', ratio);
+            
+            // Update dropdown button text to show active substitute
+            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
+            if (dropdownButton) {
+                dropdownButton.innerHTML = `<i class="fas fa-check-circle me-1 text-success"></i>${substitute}`;
+                dropdownButton.classList.remove('btn-outline-primary');
+                dropdownButton.classList.add('btn-outline-success');
+            }
+            
+            // Close the dropdown
+            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+            
+            updateScale();
+        }
+    }
+
+    function removeSubstitution(event) {
+        event.preventDefault();
+        const index = event.target.getAttribute('data-ingredient-index');
+        
+        console.log(`❌ Removing substitution for ingredient ${index}`);
+        
+        const row = document.querySelector(`[data-ingredient="${index}"]`);
+        if (row) {
+            row.classList.remove('substituted');
+            row.querySelector('.substitute-info').style.display = 'none';
+            
+            // Remove the substitution
+            delete activeSubstitutions[index];
+            
+            // Reset the needed amount display
+            const neededAmount = row.querySelector('.needed-amount');
+            neededAmount.removeAttribute('data-substitute-ratio');
+            
+            // Reset dropdown button text
+            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
+            if (dropdownButton) {
+                dropdownButton.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>Substitute`;
+                dropdownButton.classList.remove('btn-outline-success');
+                dropdownButton.classList.add('btn-outline-primary');
+            }
+            
+            // Close the dropdown
+            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+            
+            updateScale();
+        }
+    }
+
+    function getUnitCategory(unit) {
+        const volumeUnits = ['ml', 'l', 'cups', 'tbsp', 'tsp', 'fl oz', 'oz', 'qt', 'pt', 'gal'];
+        const weightUnits = ['g', 'kg', 'oz', 'lb', 'mg'];
+        const countUnits = ['pcs', 'pieces', 'items', 'cloves', 'slices', 'whole', 'each'];
+
+        const normalizedUnit = unit.toLowerCase();
+        
+        if (volumeUnits.includes(normalizedUnit)) return 'volume';
+        if (weightUnits.includes(normalizedUnit)) return 'weight';
+        if (countUnits.includes(normalizedUnit)) return 'count';
+        
+        return 'volume'; // Default fallback
+    }
+
+    function updateScale() {
+        // Since we removed target servings, always use original servings (scale factor = 1.0)
+        const targetServings = originalServings;
+        const scaleFactor = 1.0;
+        
+        document.querySelectorAll('.needed-amount').forEach(element => {
+            const originalAmount = parseFloat(element.dataset.original);
+            const substituteRatio = parseFloat(element.dataset.substituteRatio) || 1;
+            const scaledAmount = originalAmount * scaleFactor * substituteRatio;
+            element.textContent = formatAmount(scaledAmount);
+        });
+        
         updateAllStatuses();
-        checkForAutoAdjustment();
-        
-        // Show success message
-        const suggestion = document.getElementById('auto-adjust-suggestion');
-        if (suggestion) {
-            suggestion.remove();
+        updateAdjustedRecipeTable();
+    }
+
+    async function updateAllStatuses() {
+        const ingredients = document.querySelectorAll('[data-ingredient]');
+        for (let index = 0; index < ingredients.length; index++) {
+            await updateIngredientStatus(index);
         }
-        const suggestionHtml = `
-            <div id="auto-adjust-suggestion" class="alert alert-success alert-dismissible fade show mt-2" role="alert">
-                <strong>✅ Recipe adjusted!</strong> Maximum possible servings set to ${maxServings}.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', suggestionHtml);
-        
-        // Auto-remove success message after 3 seconds
-        setTimeout(() => {
-            const msg = document.getElementById('auto-adjust-suggestion');
-            if (msg) msg.remove();
-        }, 3000);
-    } else {
-        alert('Not enough ingredients to make any servings.');
     }
-}
+
+    // Add a manual conversion test function for debugging
+    window.testConversion = function(amount, from, to) {
+        console.log(`🧪 Testing conversion: ${amount} ${from} → ${to}`);
+        convertUnits(amount, from, to).then(result => {
+            console.log(`✅ Test result: ${amount} ${from} = ${result} ${to}`);
+            alert(`${amount} ${from} = ${result} ${to}`);
+        });
+    };
+});
 </script>
-        }, 3000);
-    } else {
-        alert('Not enough ingredients to make any servings.');
-    }
-}
-</script>
+
+<%- include('parts/footer') %>
