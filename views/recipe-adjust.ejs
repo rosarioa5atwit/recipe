@@ -106,10 +106,14 @@
                                                                    href="#" 
                                                                    data-ingredient-index="<%= index %>" 
                                                                    data-substitute="<%= sub.name %>" 
-                                                                   data-ratio="<%= sub.ratio || 1 %>">
+                                                                   data-ratio="<%= sub.ratio || 1 %>"
+                                                                   data-units="<%= sub.units || '' %>">
                                                                     <span>
                                                                         <i class="fas fa-arrow-right me-2 text-muted"></i>
                                                                         <%= sub.name %>
+                                                                        <% if (sub.units && sub.units !== (ingredient.unit?.name || '')) { %>
+                                                                            <small class="text-info"> (in <%= sub.units %>)</small>
+                                                                        <% } %>
                                                                     </span>
                                                                     <small class="text-muted">
                                                                         <%= (sub.ratio || 1) %>:1
@@ -892,84 +896,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Custom dropdowns initialized');
     }
 
-    function applySubstitution(event) {
-        event.preventDefault();
-        const index = event.target.getAttribute('data-ingredient-index');
-        const substitute = event.target.getAttribute('data-substitute');
-        const ratio = parseFloat(event.target.getAttribute('data-ratio')) || 1;
-        
-        console.log(`🔄 Applying substitution for ingredient ${index}: ${substitute} (ratio: ${ratio})`);
-        
-        // Update the row with substitution info
-        const row = document.querySelector(`[data-ingredient="${index}"]`);
-        if (row) {
-            row.classList.add('substituted');
-            row.querySelector('.substitute-info').style.display = 'block';
-            row.querySelector('.substitute-info small').textContent = `Using substitute: ${substitute}`;
-            
-            // Store the substitution
-            activeSubstitutions[index] = {
-                name: substitute,
-                ratio: ratio
-            };
-            
-            // Update the needed amount display
-            const neededAmount = row.querySelector('.needed-amount');
-            const originalAmount = parseFloat(neededAmount.getAttribute('data-original'));
-            neededAmount.setAttribute('data-substitute-ratio', ratio);
-            
-            // Update dropdown button text to show active substitute
-            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
-            if (dropdownButton) {
-                dropdownButton.innerHTML = `<i class="fas fa-check-circle me-1 text-success"></i>${substitute}`;
-                dropdownButton.classList.remove('btn-outline-primary');
-                dropdownButton.classList.add('btn-outline-success');
-            }
-            
-            // Close the dropdown
-            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
-            const dropdown = document.getElementById(dropdownId);
-            if (dropdown) dropdown.style.display = 'none';
-            
-            updateScale();
-        }
-    }
-
-    function removeSubstitution(event) {
-        event.preventDefault();
-        const index = event.target.getAttribute('data-ingredient-index');
-        
-        console.log(`❌ Removing substitution for ingredient ${index}`);
-        
-        const row = document.querySelector(`[data-ingredient="${index}"]`);
-        if (row) {
-            row.classList.remove('substituted');
-            row.querySelector('.substitute-info').style.display = 'none';
-            
-            // Remove the substitution
-            delete activeSubstitutions[index];
-            
-            // Reset the needed amount display
-            const neededAmount = row.querySelector('.needed-amount');
-            neededAmount.removeAttribute('data-substitute-ratio');
-            
-            // Reset dropdown button text
-            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
-            if (dropdownButton) {
-                dropdownButton.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>Substitute`;
-                dropdownButton.classList.remove('btn-outline-success');
-                dropdownButton.classList.add('btn-outline-primary');
-            }
-            
-            // Close the dropdown
-            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
-            const dropdown = document.getElementById(dropdownId);
-            if (dropdown) dropdown.style.display = 'none';
-            
-            updateScale();
-        }
-    }
-
     function getUnitCategory(unit) {
         const volumeUnits = ['ml', 'l', 'cups', 'tbsp', 'tsp', 'fl oz', 'oz', 'qt', 'pt', 'gal'];
         const weightUnits = ['g', 'kg', 'oz', 'lb', 'mg'];
@@ -1005,6 +931,210 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let index = 0; index < ingredients.length; index++) {
             await updateIngredientStatus(index);
         }
+    }
+
+    function applySubstitution(event) {
+        event.preventDefault();
+        const index = parseInt(event.target.getAttribute('data-ingredient-index'));
+        const substitute = event.target.getAttribute('data-substitute');
+        const ratio = parseFloat(event.target.getAttribute('data-ratio')) || 1;
+        const substituteUnits = event.target.getAttribute('data-units') || '';
+        
+        console.log(`🔄 Applying substitution for ingredient ${index}: ${substitute} (ratio: ${ratio}, units: "${substituteUnits}")`);
+        
+        // Check for valid index
+        if (isNaN(index) || index < 0) {
+            console.error('Invalid ingredient index:', index);
+            return;
+        }
+        
+        // Update the row with substitution info
+        const row = document.querySelector(`[data-ingredient="${index}"]`);
+        if (row) {
+            row.classList.add('substituted');
+            
+            // Show substitute info
+            const substituteInfo = row.querySelector('.substitute-info');
+            if (substituteInfo) {
+                substituteInfo.style.display = 'block';
+                const originalName = recipeData.ingredients[index].name;
+                const originalAmount = recipeData.ingredients[index].amount;
+                const originalUnit = recipeData.ingredients[index].unit?.name || '';
+                
+                // Calculate substitute amount
+                const substituteAmount = originalAmount * ratio;
+                const displayUnit = substituteUnits || originalUnit;
+                
+                substituteInfo.querySelector('small').innerHTML = 
+                    `Using <strong>${substitute}</strong>: ${formatAmount(substituteAmount)} ${displayUnit} instead of ${formatAmount(originalAmount)} ${originalUnit} ${originalName}`;
+            }
+            
+            // Store the substitution with units
+            activeSubstitutions[index] = {
+                name: substitute,
+                ratio: ratio,
+                units: substituteUnits,
+                originalName: recipeData.ingredients[index].name,
+                originalAmount: recipeData.ingredients[index].amount,
+                originalUnit: recipeData.ingredients[index].unit?.name || ''
+            };
+            
+            // Update the needed amount with substitution ratio
+            const neededAmount = row.querySelector('.needed-amount');
+            const originalAmount = parseFloat(neededAmount.getAttribute('data-original'));
+            const newAmount = originalAmount * ratio;
+            neededAmount.textContent = formatAmount(newAmount);
+            
+            // Update unit display in "Recipe Needs" column - ALWAYS update if substituteUnits exists
+            const unitDisplay = neededAmount.nextElementSibling;
+            if (unitDisplay) {
+                // Store original unit if not already stored
+                if (!unitDisplay.hasAttribute('data-original-unit')) {
+                    unitDisplay.setAttribute('data-original-unit', unitDisplay.textContent.trim());
+                }
+                
+                // Use substitute units if available, otherwise keep original
+                if (substituteUnits && substituteUnits.trim() !== '') {
+                    unitDisplay.textContent = substituteUnits;
+                    console.log(`Updated Recipe Needs unit to: "${substituteUnits}"`);
+                } else {
+                    console.log(`No substitute units specified, keeping original: "${unitDisplay.textContent}"`);
+                }
+            }
+            
+            // Update the "Amount I Have" input and unit selector
+            const haveInput = row.querySelector('.have-amount');
+            const haveUnitSelect = row.querySelector('.have-unit');
+            
+            if (haveInput && haveUnitSelect) {
+                // Store original values if not already stored
+                if (!haveInput.hasAttribute('data-original-value')) {
+                    haveInput.setAttribute('data-original-value', haveInput.value);
+                }
+                if (!haveUnitSelect.hasAttribute('data-original-unit')) {
+                    haveUnitSelect.setAttribute('data-original-unit', haveUnitSelect.value);
+                }
+                
+                // Update the "Amount I Have" to use substitute amount
+                haveInput.value = newAmount.toString();
+                
+                // Update the unit selector to show substitute units if available
+                if (substituteUnits && substituteUnits.trim() !== '') {
+                    // Check if the substitute unit already exists in the dropdown
+                    let optionExists = false;
+                    for (let option of haveUnitSelect.options) {
+                        if (option.value === substituteUnits) {
+                            option.selected = true;
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    
+                    // If substitute unit doesn't exist in dropdown, add it
+                    if (!optionExists) {
+                        const newOption = document.createElement('option');
+                        newOption.value = substituteUnits;
+                        newOption.textContent = substituteUnits;
+                        newOption.selected = true;
+                        haveUnitSelect.insertBefore(newOption, haveUnitSelect.firstChild);
+                    }
+                    console.log(`Updated Amount I Have unit to: "${substituteUnits}"`);
+                }
+            }
+            
+            // Update dropdown button to show active substitute
+            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
+            if (dropdownButton) {
+                let buttonText = `<i class="fas fa-check-circle me-1 text-success"></i>${substitute}`;
+                if (substituteUnits && substituteUnits.trim() !== '' && substituteUnits !== (activeSubstitutions[index].originalUnit || '')) {
+                    buttonText += ` <small>(${substituteUnits})</small>`;
+                }
+                dropdownButton.innerHTML = buttonText;
+                dropdownButton.classList.remove('btn-outline-primary');
+                dropdownButton.classList.add('btn-outline-success');
+            }
+            
+            // Close the dropdown
+            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+            
+            // Recalculate everything
+            handleIngredientChange({ target: row.querySelector('.have-amount') });
+        }
+    }
+
+    function removeSubstitution(event) {
+        event.preventDefault();
+        const index = parseInt(event.target.getAttribute('data-ingredient-index'));
+        
+        console.log(`❌ Removing substitution for ingredient ${index}`);
+        
+        const row = document.querySelector(`[data-ingredient="${index}"]`);
+        if (row) {
+            row.classList.remove('substituted');
+            row.querySelector('.substitute-info').style.display = 'none';
+            
+            // Restore original values in "Recipe Needs" column
+            const neededAmount = row.querySelector('.needed-amount');
+            const originalAmount = parseFloat(neededAmount.getAttribute('data-original'));
+            neededAmount.textContent = formatAmount(originalAmount);
+            
+            // Restore original unit in "Recipe Needs" column
+            const unitDisplay = neededAmount.nextElementSibling;
+            if (unitDisplay && unitDisplay.hasAttribute('data-original-unit')) {
+                unitDisplay.textContent = unitDisplay.getAttribute('data-original-unit');
+                unitDisplay.removeAttribute('data-original-unit');
+            }
+            
+            // Restore original values in "Amount I Have" column
+            const haveInput = row.querySelector('.have-amount');
+            const haveUnitSelect = row.querySelector('.have-unit');
+            
+            if (haveInput.hasAttribute('data-original-value')) {
+                haveInput.value = haveInput.getAttribute('data-original-value');
+                haveInput.removeAttribute('data-original-value');
+            }
+            
+            if (haveUnitSelect.hasAttribute('data-original-unit')) {
+                const originalUnit = haveUnitSelect.getAttribute('data-original-unit');
+                haveUnitSelect.value = originalUnit;
+                haveUnitSelect.removeAttribute('data-original-unit');
+                
+                // Remove any substitute unit options that were added
+                for (let i = haveUnitSelect.options.length - 1; i >= 0; i--) {
+                    const option = haveUnitSelect.options[i];
+                    if (option.value !== originalUnit && !isStandardUnit(option.value)) {
+                        haveUnitSelect.removeChild(option);
+                    }
+                }
+            }
+            
+            // Remove the substitution
+            delete activeSubstitutions[index];
+            
+            // Reset dropdown button text
+            const dropdownButton = row.querySelector('[data-dropdown-toggle]');
+            if (dropdownButton) {
+                dropdownButton.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>Substitute`;
+                dropdownButton.classList.remove('btn-outline-success');
+                dropdownButton.classList.add('btn-outline-primary');
+            }
+            
+            // Close the dropdown
+            const dropdownId = dropdownButton.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+            
+            // Recalculate everything
+            handleIngredientChange({ target: row.querySelector('.have-amount') });
+        }
+    }
+
+    // Helper function to check if a unit is one of the standard dropdown units
+    function isStandardUnit(unit) {
+        const standardUnits = ['cups', 'tbsp', 'tsp', 'oz', 'lb', 'g', 'kg', 'ml', 'l', 'pcs', 'cloves', 'slices'];
+        return standardUnits.includes(unit);
     }
 
     // Add a manual conversion test function for debugging

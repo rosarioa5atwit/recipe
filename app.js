@@ -520,7 +520,18 @@ app.post('/recipes/:id', async (req, res) => {
   try {
     const { title, instructions, servings, prep_time, cook_time, ingredients } = req.body;
     
+    console.log('*** RECIPE UPDATE RECEIVED ***');
+    console.log('Recipe ID:', req.params.id);
+    console.log('Title:', title);
+    console.log('Instructions:', instructions ? instructions.substring(0, 50) + '...' : 'No instructions');
+    console.log('Servings:', servings);
+    console.log('Prep Time:', prep_time);
+    console.log('Cook Time:', cook_time);
+    console.log('Raw ingredients received:', JSON.stringify(ingredients, null, 2));
+    console.log('User ID:', req.user.id);
+    
     if (!title || !instructions || !servings) {
+      console.error('Missing required fields:', { title: !!title, instructions: !!instructions, servings: !!servings });
       return res.status(400).render('edit-recipe', {
         user: req.user,
         recipe: { id: req.params.id, title, instructions, base_servings: servings, prep_time, cook_time },
@@ -528,6 +539,7 @@ app.post('/recipes/:id', async (req, res) => {
       });
     }
 
+    console.log('Updating recipe in database...');
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .update({
@@ -543,10 +555,15 @@ app.post('/recipes/:id', async (req, res) => {
       .select()
       .single();
 
-    if (recipeError) throw recipeError;
+    if (recipeError) {
+      console.error('Recipe update error:', recipeError);
+      throw recipeError;
+    }
     
-    console.log('Recipe updated with ID:', recipe.id);
+    console.log('Recipe updated successfully:', recipe.title);
 
+    // Delete existing ingredients
+    console.log('Deleting existing ingredients...');
     const { error: deleteError } = await req.supabase
       .from('recipe_ingredients')
       .delete()
@@ -554,17 +571,28 @@ app.post('/recipes/:id', async (req, res) => {
 
     if (deleteError) {
       console.error('Error deleting existing ingredients:', deleteError);
+    } else {
+      console.log('Existing ingredients deleted successfully');
     }
 
+    // Process new ingredients
     if (ingredients && Array.isArray(ingredients)) {
+      console.log('Processing', ingredients.length, 'ingredients...');
       const ingredientInserts = [];
       
       for (let index = 0; index < ingredients.length; index++) {
         const ingredient = ingredients[index];
         
+        console.log(`\n--- Processing ingredient ${index + 1} ---`);
+        console.log('Raw ingredient data:', ingredient);
+        console.log('Name:', ingredient.name);
+        console.log('Amount:', ingredient.amount);
+        console.log('Unit:', ingredient.unit);
+        console.log('Unit type:', typeof ingredient.unit);
+        console.log('Unit empty?', !ingredient.unit || ingredient.unit.trim() === '');
+        
         if (ingredient.name && ingredient.amount && ingredient.amount.trim() !== '') {
-          console.log(`Processing ingredient ${index + 1}: ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`);
-          
+          // Look up ingredient in database
           const { data: ingredientRecord, error: ingredientError } = await req.supabase
             .from('ingredient')
             .select('id')
@@ -572,53 +600,85 @@ app.post('/recipes/:id', async (req, res) => {
             .single();
           
           if (ingredientError) {
-            console.warn(`Could not find ingredient "${ingredient.name}":`, ingredientError);
+            console.warn(`Could not find ingredient "${ingredient.name}":`, ingredientError.message);
+          } else {
+            console.log(`Found ingredient "${ingredient.name}" with ID:`, ingredientRecord.id);
           }
           
+          // Look up unit in database
           let unitRecord = null;
           if (ingredient.unit && ingredient.unit.trim() !== '') {
+            console.log(`Looking up unit: "${ingredient.unit}"`);
             const { data: unitData, error: unitError } = await req.supabase
               .from('measurement_units')
-              .select('id')
+              .select('id, name')
               .eq('name', ingredient.unit)
               .single();
             
             if (unitError) {
-              console.warn(`Could not find unit "${ingredient.unit}":`, unitError);
+              console.warn(`Could not find unit "${ingredient.unit}":`, unitError.message);
+              
+              // Let's also check what units are available
+              const { data: allUnits, error: allUnitsError } = await req.supabase
+                .from('measurement_units')
+                .select('id, name')
+                .limit(20);
+              
+              if (!allUnitsError) {
+                console.log('Available units in database:', allUnits.map(u => u.name));
+              }
             } else {
               unitRecord = unitData;
+              console.log(`Found unit "${ingredient.unit}" with ID:`, unitRecord.id);
             }
+          } else {
+            console.log('No unit specified for this ingredient');
           }
           
-          ingredientInserts.push({
-            recipe_id: recipe.id,
+          const insertData = {
+            recipe_id: parseInt(recipe.id),
             name: ingredient.name,
             amount: parseFloat(ingredient.amount),
             ingredient_id: ingredientRecord ? ingredientRecord.id : null,
             unit_id: unitRecord ? unitRecord.id : null
-          });
+          };
+          
+          console.log('Prepared insert data:', insertData);
+          ingredientInserts.push(insertData);
+        } else {
+          console.log(`Skipping incomplete ingredient ${index + 1}:`, ingredient);
         }
       }
 
       if (ingredientInserts.length > 0) {
-        console.log('Inserting updated ingredients:', ingredientInserts);
+        console.log('\n=== INSERTING INGREDIENTS ===');
+        console.log('Final ingredient inserts:', JSON.stringify(ingredientInserts, null, 2));
         
         const { data: insertedIngredients, error: ingredientError } = await req.supabase
           .from('recipe_ingredients')
           .insert(ingredientInserts)
-          .select();
+          .select('*, unit:unit_id(name)');
 
         if (ingredientError) {
           console.error('Ingredient insert error:', ingredientError);
         } else {
-          console.log('Successfully updated ingredients:', insertedIngredients);
+          console.log('Successfully inserted ingredients:');
+          insertedIngredients.forEach((ing, idx) => {
+            console.log(`  ${idx + 1}. ${ing.amount} ${ing.unit?.name || 'no unit'} ${ing.name}`);
+          });
         }
+      } else {
+        console.log('No valid ingredients to insert');
       }
+    } else {
+      console.log('No ingredients array found or ingredients is not an array');
     }
 
+    console.log('*** RECIPE UPDATE COMPLETE - REDIRECTING ***');
     res.redirect(`/recipes/${recipe.id}`);
   } catch (err) {
     console.error(`Update recipe error: ${err.message}`);
+    console.error('Full error:', err);
     res.status(500).render('edit-recipe', {
       user: req.user,
       recipe: { id: req.params.id },
@@ -773,6 +833,89 @@ app.delete('/recipes/:id', async (req, res) => {
   } catch (err) {
     console.error('Recipe delete error:', err);
     res.status(500).json({ error: 'Failed to delete recipe' });
+  }
+});
+
+app.get('/api/convert', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const { amount, from, to } = req.query;
+    
+    if (!amount || !from || !to) {
+      return res.status(400).json({ error: 'Missing required parameters: amount, from, to' });
+    }
+
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    // Simple conversion logic (you can expand this)
+    const conversions = {
+      // Volume conversions (to ml)
+      volume: {
+        'ml': 1,
+        'l': 1000,
+        'cups': 236.588,
+        'tbsp': 14.7868,
+        'tsp': 4.92892,
+        'fl oz': 29.5735,
+        'oz': 29.5735,
+        'qt': 946.353,
+        'pt': 473.176,
+        'gal': 3785.41
+      },
+      // Weight conversions (to grams)
+      weight: {
+        'g': 1,
+        'kg': 1000,
+        'oz': 28.3495,
+        'lb': 453.592,
+        'mg': 0.001
+      },
+      // Count conversions
+      count: {
+        'pcs': 1,
+        'pieces': 1,
+        'items': 1,
+        'cloves': 1,
+        'slices': 1,
+        'whole': 1,
+        'each': 1
+      }
+    };
+
+    // Find unit categories
+    let fromCategory = null;
+    let toCategory = null;
+    
+    for (const [category, units] of Object.entries(conversions)) {
+      if (units[from.toLowerCase()]) fromCategory = category;
+      if (units[to.toLowerCase()]) toCategory = category;
+    }
+
+    if (fromCategory !== toCategory) {
+      return res.status(400).json({ error: 'Cannot convert between different unit types' });
+    }
+
+    if (!fromCategory) {
+      return res.status(400).json({ error: 'Unknown unit type' });
+    }
+
+    const fromRatio = conversions[fromCategory][from.toLowerCase()];
+    const toRatio = conversions[fromCategory][to.toLowerCase()];
+
+    if (!fromRatio || !toRatio) {
+      return res.status(400).json({ error: 'Conversion not supported' });
+    }
+
+    const result = (numAmount * fromRatio) / toRatio;
+    res.json({ result: Math.round(result * 100000) / 100000 });
+
+  } catch (err) {
+    console.error('Conversion error:', err);
+    res.status(500).json({ error: 'Conversion failed' });
   }
 });
 
