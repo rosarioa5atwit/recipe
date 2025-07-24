@@ -18,8 +18,12 @@
 </style>
 
 <div class="center-content">
-  <img src="/images/cooking-main.jpg" alt="Cooking in the kitchen" class="main-image" />
-  <section class="informayion">
+  <img src="/images/cooking-main.jpg" alt="Cooking in the kitchen" class="main-image"
+    onerror="this.style.display='none'; document.getElementById('img-fallback').style.display='block';" />
+  <div id="img-fallback" style="display:none; margin-bottom:24px; color:#888;">
+    [Main cooking image not found]
+  </div>
+  <section class="information">
     <h2>Welcome to PortionPrefect</h2>
     <P> This page is dedicated to helping people modify their recipes to allow its users with the flexiablity to adpate their recipes to what they have in there pantry</P>
     <p>To contuine please log in for sign up an account</p>
@@ -29,4 +33,3 @@
 
     Our goal is simple: help home cooks save time, reduce food waste, and use what they have. PortionPerfect is made to make your life easier—one meal at a time.</p>
   </section>
-</div>
