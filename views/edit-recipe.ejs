@@ -36,14 +36,27 @@
                         <div class="ingredient-row mb-2">
                             <div class="d-flex gap-2 align-items-center">
                                 <input type="number" step="0.01" class="form-control form-control-sm" name="ingredients[<%= index %>][amount]" 
-                                       placeholder="Amount" value="<%= ingredient.amount %>" required style="width: 100px;">
-                                <input type="text" class="form-control form-control-sm unit-input" name="ingredients[<%= index %>][unit]" 
-                                       placeholder="Unit" value="<%= ingredient.unit ? ingredient.unit.name : '' %>" autocomplete="off" style="width: 100px;">
-                                <div class="position-relative flex-grow-1">
+                                       placeholder="Amount" value="<%= ingredient.amount %>" required style="width: 80px;">
+                                <select class="form-select form-select-sm" name="ingredients[<%= index %>][unit]" style="width: 80px;">
+                                    <option value="">Unit</option>
+                                    <option value="cup" <%= (ingredient.unit && ingredient.unit.name === 'cup') ? 'selected' : '' %>>cup</option>
+                                    <option value="tablespoon" <%= (ingredient.unit && ingredient.unit.name === 'tablespoon') ? 'selected' : '' %>>tbsp</option>
+                                    <option value="teaspoon" <%= (ingredient.unit && ingredient.unit.name === 'teaspoon') ? 'selected' : '' %>>tsp</option>
+                                    <option value="ounce" <%= (ingredient.unit && ingredient.unit.name === 'ounce') ? 'selected' : '' %>>oz</option>
+                                    <option value="pound" <%= (ingredient.unit && ingredient.unit.name === 'pound') ? 'selected' : '' %>>lb</option>
+                                    <option value="gram" <%= (ingredient.unit && ingredient.unit.name === 'gram') ? 'selected' : '' %>>g</option>
+                                    <option value="kilogram" <%= (ingredient.unit && ingredient.unit.name === 'kilogram') ? 'selected' : '' %>>kg</option>
+                                    <option value="milliliter" <%= (ingredient.unit && ingredient.unit.name === 'milliliter') ? 'selected' : '' %>>ml</option>
+                                    <option value="liter" <%= (ingredient.unit && ingredient.unit.name === 'liter') ? 'selected' : '' %>>l</option>
+                                    <option value="piece" <%= (ingredient.unit && ingredient.unit.name === 'piece') ? 'selected' : '' %>>pcs</option>
+                                    <option value="clove" <%= (ingredient.unit && ingredient.unit.name === 'clove') ? 'selected' : '' %>>clove</option>
+                                    <option value="pinch" <%= (ingredient.unit && ingredient.unit.name === 'pinch') ? 'selected' : '' %>>pinch</option>
+                                </select>
+                                <div class="position-relative" style="flex: 2;">
                                     <input type="text" class="form-control form-control-sm ingredient-input" name="ingredients[<%= index %>][name]" 
                                            placeholder="Ingredient name" value="<%= ingredient.name %>" required autocomplete="off">
                                 </div>
-                                <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 40px;">×</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 35px;">×</button>
                             </div>
                         </div>
                     <% }); %>
@@ -51,14 +64,27 @@
                     <div class="ingredient-row mb-2">
                         <div class="d-flex gap-2 align-items-center">
                             <input type="number" step="0.01" class="form-control form-control-sm" name="ingredients[0][amount]" 
-                                   placeholder="Amount" required style="width: 100px;">
-                            <input type="text" class="form-control form-control-sm unit-input" name="ingredients[0][unit]" 
-                                   placeholder="Unit" autocomplete="off" style="width: 100px;">
-                            <div class="position-relative flex-grow-1">
+                                   placeholder="Amount" required style="width: 80px;">
+                            <select class="form-select form-select-sm" name="ingredients[0][unit]" style="width: 80px;">
+                                <option value="">Unit</option>
+                                <option value="cup">cup</option>
+                                <option value="tablespoon">tbsp</option>
+                                <option value="teaspoon">tsp</option>
+                                <option value="ounce">oz</option>
+                                <option value="pound">lb</option>
+                                <option value="gram">g</option>
+                                <option value="kilogram">kg</option>
+                                <option value="milliliter">ml</option>
+                                <option value="liter">l</option>
+                                <option value="piece">pcs</option>
+                                <option value="clove">clove</option>
+                                <option value="pinch">pinch</option>
+                            </select>
+                            <div class="position-relative" style="flex: 2;">
                                 <input type="text" class="form-control form-control-sm ingredient-input" name="ingredients[0][name]" 
                                        placeholder="Ingredient name" required autocomplete="off">
                             </div>
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 40px;">×</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 35px;">×</button>
                         </div>
                     </div>
                 <% } %>
@@ -88,14 +114,27 @@ document.getElementById('add-ingredient').addEventListener('click', function() {
     newRow.innerHTML = `
         <div class="d-flex gap-2 align-items-center">
             <input type="number" step="0.01" class="form-control form-control-sm" name="ingredients[${ingredientCount}][amount]" 
-                   placeholder="Amount" required style="width: 100px;">
-            <input type="text" class="form-control form-control-sm unit-input" name="ingredients[${ingredientCount}][unit]" 
-                   placeholder="Unit" autocomplete="off" style="width: 100px;">
-            <div class="position-relative flex-grow-1">
+                   placeholder="Amount" required style="width: 80px;">
+            <select class="form-select form-select-sm" name="ingredients[${ingredientCount}][unit]" style="width: 80px;">
+                <option value="">Unit</option>
+                <option value="cup">cup</option>
+                <option value="tablespoon">tbsp</option>
+                <option value="teaspoon">tsp</option>
+                <option value="ounce">oz</option>
+                <option value="pound">lb</option>
+                <option value="gram">g</option>
+                <option value="kilogram">kg</option>
+                <option value="milliliter">ml</option>
+                <option value="liter">l</option>
+                <option value="piece">pcs</option>
+                <option value="clove">clove</option>
+                <option value="pinch">pinch</option>
+            </select>
+            <div class="position-relative" style="flex: 2;">
                 <input type="text" class="form-control form-control-sm ingredient-input" name="ingredients[${ingredientCount}][name]" 
                        placeholder="Ingredient name" required autocomplete="off">
             </div>
-            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 40px;">×</button>
+            <button type="button" class="btn btn-outline-danger btn-sm remove-ingredient" style="width: 35px;">×</button>
         </div>
     `;
     container.appendChild(newRow);
@@ -117,29 +156,23 @@ function updateeIngredientIndexes() {
     const rows = document.querySelectorAll('.ingredient-row');
     rows.forEach((row, index) => {
         const inputs = row.querySelectorAll('input');
+        const select = row.querySelector('select');
         inputs[0].name = `ingredients[${index}][amount]`;
-        inputs[1].name = `ingredients[${index}][unit]`;
-        inputs[2].name = `ingredients[${index}][name]`;
+        select.name = `ingredients[${index}][unit]`;
+        inputs[1].name = `ingredients[${index}][name]`;
     });
     ingredientCount = rows.length;
 }
 
 // Autocomplete functionality
 let availableIngredients = [];
-let availableUnits = [];
 
 async function loadAutocompleteData() {
     try {
-        const [ingredientsResponse, unitsResponse] = await Promise.all([
-            fetch('/api/ingredients'),
-            fetch('/api/units')
-        ]);
+        const ingredientsResponse = await fetch('/api/ingredients');
         
         if (ingredientsResponse.ok) {
             availableIngredients = await ingredientsResponse.json();
-        }
-        if (unitsResponse.ok) {
-            availableUnits = await unitsResponse.json();
         }
         
         updateAutocomp();
@@ -149,18 +182,10 @@ async function loadAutocompleteData() {
 }
 
 function updateAutocomp() {
-    // Ingredient autocomplete
+    // Ingredient autocomplete only (units are now dropdowns)
     document.querySelectorAll('.ingredient-input').forEach(input => {
         if (!input.hasAttribute('data-autocomplete-initialized')) {
             setupAutocomplete(input, availableIngredients.map(i => i.name));
-            input.setAttribute('data-autocomplete-initialized', 'true');
-        }
-    });
-    
-    // Unit autocomplete
-    document.querySelectorAll('.unit-input').forEach(input => {
-        if (!input.hasAttribute('data-autocomplete-initialized')) {
-            setupAutocomplete(input, availableUnits.map(u => u.name));
             input.setAttribute('data-autocomplete-initialized', 'true');
         }
     });
@@ -212,20 +237,7 @@ function showSuggestions(input, suggestions) {
 }
 
 document.addEventListener('click', function(e) {
-    if (!e.target.classList.contains('ingredient-input') && !e.target.classList.contains('unit-input')) {
-        document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
-            dropdown.remove();
-        });
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    loadAutocompleteData();
-});
-</script>
-
-<%- include('parts/footer') %>
-    if (!e.target.classList.contains('ingredient-input') && !e.target.classList.contains('unit-input')) {
+    if (!e.target.classList.contains('ingredient-input')) {
         document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
             dropdown.remove();
         });
