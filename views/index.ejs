@@ -6,30 +6,97 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e0ecf7 100%);
+    min-height: 80vh;
   }
   .main-image {
-    max-width: 400px;
+    max-width: 480px;
     width: 100%;
     height: auto;
-    margin-bottom: 24px;
+    margin-bottom: 0;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background: #fff;
+  }
+  .image-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .intro-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(5,102,141,0.08);
+    padding: 32px 24px;
+    max-width: 700px;
+    margin: 0 auto 32px auto;
+    text-align: left;
+  }
+  .intro-card h2 {
+    font-size: 2.2rem;
+    color: #05668D;
+    margin-bottom: 18px;
+    text-align: center;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .intro-card p {
+    font-size: 1.15rem;
+    color: #333;
+    margin-bottom: 18px;
+    line-height: 1.7;
+    text-align: center;
+  }
+  .intro-card ul {
+    margin: 18px auto 0 auto;
+    padding-left: 1.2em;
+    color: #427AA1;
+    font-size: 1rem;
+    text-align: left;
+    max-width: 600px;
+  }
+  .intro-card li {
+    margin-bottom: 8px;
+  }
+  @media (max-width: 600px) {
+    .intro-card { padding: 18px 8px; }
+    .main-image { max-width: 180px; }
+    .image-row { gap: 10px; }
   }
 </style>
 
 <div class="center-content">
-  <img src="\js\images\cuttingboard.png" alt="Cooking in the kitchen" class="main-image"
-    onerror="this.style.display='none'; document.getElementById('img-fallback').style.display='block';" />
+  <div class="image-row">
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <img src="\js\images\cuttingboard.png" alt="Cooking in the kitchen" class="main-image"
+        style="border: 3px solid #05668D; box-shadow: 0 6px 24px rgba(5,102,141,0.12); background: #fff; max-width:480px;" 
+        onerror="this.style.display='none'; document.getElementById('img-fallback').style.display='block';" />
+      <div style="margin-top: 10px; color: #427AA1; font-size: 1.1rem; font-weight: 500;">
+        Fresh ingredients, ready to cook!
+      </div>
+    </div>
+  </div>
   <div id="img-fallback" style="display:none; margin-bottom:24px; color:#888;">
     [Main cooking image not found]
   </div>
-  <section class="information">
-    <h2>Welcome to PortionPrefect</h2>
-    <P> This page is dedicated to helping people modify their recipes to allow its users with the flexiablity to adpate their recipes to what they have in there pantry</P>
-    <p>To contuine please log in for sign up an account</p>
-    <p> At PortionPerfect, we know how frustrating it can be to start cooking and realize you're missing an ingredient or don’t have enough of something. That’s why we created a tool that helps you make the most of what’s already in your kitchen.
-
-    Unlike other recipe converters, PortionPerfect doesn’t just change serving sizes. Our website adjusts recipes based on what you actually have at home. If a recipe calls for two eggs but you only have one, we’ll update the whole recipe for you. We also suggest easy ingredient swaps so you can still cook without running to the store.
-
-    Our goal is simple: help home cooks save time, reduce food waste, and use what they have. PortionPerfect is made to make your life easier—one meal at a time.</p>
-  </section>
+  <div class="intro-card">
+    <h2>Welcome to PortionPerfect</h2>
+    <p>
+      PortionPerfect helps you adapt recipes to fit what you have in your pantry. Whether you're missing an ingredient or need to adjust serving sizes, our tool gives you the flexibility to cook with confidence.
+    </p>
+    <ul>
+      <li>Log in or sign up to get started.</li>
+      <li>Enter your ingredients and let us adjust your recipe for you.</li>
+      <li>Get smart ingredient swaps and reduce food waste.</li>
+      <li>Save time and make cooking easier—one meal at a time.</li>
+    </ul>
+    <p>
+      At PortionPerfect, we know how frustrating it can be to start cooking and realize you're missing an ingredient or don’t have enough of something. That’s why we created a tool that helps you make the most of what’s already in your kitchen.<br><br>
+      Unlike other recipe converters, PortionPerfect doesn’t just change serving sizes. Our website adjusts recipes based on what you actually have at home. If a recipe calls for two eggs but you only have one, we’ll update the whole recipe for you. We also suggest easy ingredient swaps so you can still cook without running to the store.<br><br>
+      <strong>Our goal is simple:</strong> help home cooks save time, reduce food waste, and use what they have.
+    </p>
+  </div>
