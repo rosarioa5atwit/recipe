@@ -164,7 +164,6 @@ function updateeIngredientIndexes() {
     ingredientCount = rows.length;
 }
 
-// Autocomplete functionality
 let availableIngredients = [];
 
 async function loadAutocompleteData() {
@@ -182,7 +181,6 @@ async function loadAutocompleteData() {
 }
 
 function updateAutocomp() {
-    // Ingredient autocomplete only (units are now dropdowns)
     document.querySelectorAll('.ingredient-input').forEach(input => {
         if (!input.hasAttribute('data-autocomplete-initialized')) {
             setupAutocomplete(input, availableIngredients.map(i => i.name));
@@ -203,7 +201,6 @@ function setupAutocomplete(input, suggestions) {
 }
 
 function showSuggestions(input, suggestions) {
-    // Remove existing dropdown
     const existingDropdown = document.querySelector('.autocomplete-dropdown');
     if (existingDropdown) {
         existingDropdown.remove();
@@ -231,7 +228,6 @@ function showSuggestions(input, suggestions) {
         dropdown.appendChild(item);
     });
     
-    // Position dropdown relative to the input's wrapper div
     const wrapperDiv = input.closest('.position-relative');
     wrapperDiv.appendChild(dropdown);
 }

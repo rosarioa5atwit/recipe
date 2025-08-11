@@ -131,6 +131,7 @@ function adjustServings(change) {
 
 function setServings(servings) {
     currentServings = servings;
+    // Calculate the scale factor based on the original servings
     const scaleFactor = servings / originalServings;
     
     document.getElementById('current-servings').textContent = servings;
@@ -139,6 +140,7 @@ function setServings(servings) {
     const ingredientElements = document.querySelectorAll('[data-original-amount]');
     ingredientElements.forEach(element => {
         const originalAmount = parseFloat(element.dataset.originalAmount);
+        // Updates each ingredient amount based on the scale factor
         const scaledAmount = originalAmount * scaleFactor;
         element.textContent = formatAmount(scaledAmount);
     });

@@ -251,10 +251,11 @@ app.get('/signup', (req, res) => {
   res.render('signup', { error: null });
 });
 
+// This route handles user login
 app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+    //Authenticate user with Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -266,7 +267,7 @@ app.post('/login', async (req, res) => {
         error: 'Invalid credentials'
       });
     }
-
+    //Set secure HTTP-only cookie
     res.cookie('sb-access-token', data.session.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -282,11 +283,13 @@ app.post('/login', async (req, res) => {
     });
   }
 });
-
+// This route handles user signup
 app.post('/signup', async (req, res) => {
   try {
+    //Get email and password from request body
     const { email, password } = req.body;
     
+    //Attempts to sign up the user with Supabase  
     const { data, error } = await supabase.auth.signUp({
       email,
       password
@@ -298,7 +301,7 @@ app.post('/signup', async (req, res) => {
         error: error.message
       });
     }
-
+  //on success, redirects to login with confirmation message
     res.redirect('/login?message=Please check your email to confirm your account');
   } catch (err) {
     console.error(`Signup error: ${err.message}`);
@@ -397,6 +400,7 @@ app.get('/recipes/:id/adjust', async (req, res) => {
     console.log('Recipe ID:', req.params.id);
     console.log('User ID:', req.user.id);
     
+    // Fetch the recipe details
     const { data: recipe, error: recipeError } = await req.supabase
       .from('recipes')
       .select('*')
@@ -410,7 +414,7 @@ app.get('/recipes/:id/adjust', async (req, res) => {
     }
 
     console.log('Recipe found:', recipe.title);
-
+    // fetch the ingredients for the recipe
     const { data: ingredients, error: ingredientsError } = await req.supabase
       .from('recipe_ingredients')
       .select(`
@@ -427,6 +431,7 @@ app.get('/recipes/:id/adjust', async (req, res) => {
     } else {
       recipe.ingredients = ingredients || [];
       
+      // For each ingredient, fetch substitutions if available
       for (let i = 0; i < recipe.ingredients.length; i++) {
         const ingredient = recipe.ingredients[i];
         

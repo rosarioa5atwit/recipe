@@ -1353,9 +1353,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add a manual conversion test function for debugging
     window.testConversion = function(amount, from, to) {
-        console.log(`🧪 Testing conversion: ${amount} ${from} → ${to}`);
+        console.log(` Testing conversion: ${amount} ${from} → ${to}`);
         convertUnits(amount, from, to).then(result => {
-            console.log(`✅ Test result: ${amount} ${from} = ${result} ${to}`);
+            console.log(`Test result: ${amount} ${from} = ${result} ${to}`);
             alert(`${amount} ${from} = ${result} ${to}`);
         });
     };
